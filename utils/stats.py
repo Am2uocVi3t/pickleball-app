@@ -35,7 +35,7 @@ def get_stats(df_matches, members_df):
     })
     df_stats["Tổng tiền"] = df_stats["Số trận thua"] * df_stats["Giá"]
 
-    total = int(df_stats["Tổng tiền"].sum())
+    total = int(pd.to_numeric(df_stats["Tổng tiền"], errors="coerce").fillna(0).sum())
     return df_stats, total, df  # trả cả df gốc để lấy ghi chú theo tháng
 
 def show_stats_page():
