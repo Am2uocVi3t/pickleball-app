@@ -9,7 +9,10 @@ SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1ThOEMd2B0q6BrW8h441eG
 
 # Kết nối tới Google Sheets
 def connect_gs(sheet_name):
-    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
+    scopes = ["https://www.googleapis.com/auth/spreadsheets",
+          "https://www.googleapis.com/auth/drive"]
+    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"], scopes=scopes)
+
     client = gspread.authorize(creds)
 
     spreadsheet = client.open_by_url(SPREADSHEET_URL)
