@@ -8,7 +8,7 @@ from utils.gsheets import load_sheet  # load từ Google Sheets
 def get_stats(df_matches, members_df):
     if df_matches.empty:
         return pd.DataFrame(), 0
-
+    
     # Tạo map giá của hội viên
     gia_map = dict(zip(members_df["Tên"], members_df["Giá thua"]))
 
@@ -29,6 +29,9 @@ def get_stats(df_matches, members_df):
             })
 
     df = pd.DataFrame(rows)
+    df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(0).astype(int)
+    df["Số trận thua"] = pd.to_numeric(df["Số trận thua"], errors="coerce").fillna(0).astype(int)
+    
     df_stats = df.groupby("Tên", as_index=False).agg({
         "Số trận thua": "sum",
         "Giá": "first"
