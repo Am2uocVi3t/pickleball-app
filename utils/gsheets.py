@@ -1,19 +1,15 @@
 import gspread
+import streamlit as st
 from google.oauth2.service_account import Credentials
 import pandas as pd
+import gspread
 
 # 👇 Thay link Google Sheets của bạn vào đây
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1ThOEMd2B0q6BrW8h441eGxw5lXgr8FtTIwrDO_fKXGM/edit"
 
 # Kết nối tới Google Sheets
 def connect_gs(sheet_name):
-    scopes = [
-        "https://www.googleapis.com/auth/spreadsheets",
-        "https://www.googleapis.com/auth/drive"
-    ]
-    creds = Credentials.from_service_account_file(
-        "./service_account.json", scopes=scopes
-    )
+    creds = Credentials.from_service_account_info(st.secrets["gcp_service_account"])
     client = gspread.authorize(creds)
 
     spreadsheet = client.open_by_url(SPREADSHEET_URL)
