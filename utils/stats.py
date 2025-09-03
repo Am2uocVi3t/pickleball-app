@@ -1,15 +1,14 @@
-# utils/stats.py
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from utils.member import load_members
-from utils.gsheets import load_sheet  # load từ Google Sheets
+from utils.gsheets import load_sheet
 
 def get_stats(df_matches, members_df):
     if df_matches.empty:
-        return pd.DataFrame(), 0
+        return pd.DataFrame(), 0, pd.DataFrame()
     
-    # Tạo map giá của hội viên
+    # Tạo map giá thua
     gia_map = dict(zip(members_df["Tên"], members_df["Giá thua"]))
 
     rows = []
@@ -17,32 +16,33 @@ def get_stats(df_matches, members_df):
         ngay = row["Ngày"]
         ghi_chu = row.get("Ghi chú", "")
         gia = int(row.get("Giá", -1))
+        # Tách tên từ cột "Cặp thua" (có thể ngăn cách bằng dấu phẩy hoặc khoảng trắng)
         names = [n.strip() for n in row["Cặp thua"].replace(",", " ").split() if n.strip()]
         for name in names:
             fee = gia if gia > 0 else gia_map.get(name, 5000)
             rows.append({
                 "Tên": name,
                 "Số trận thua": 1,
-                "Giá": fee,
+                "Tổng tiền": fee,
                 "Ngày": ngay,
                 "Ghi chú": ghi_chu
             })
 
     df = pd.DataFrame(rows)
-    df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(0).astype(int)
     df["Số trận thua"] = pd.to_numeric(df["Số trận thua"], errors="coerce").fillna(0).astype(int)
-
+    df["Tổng tiền"] = pd.to_numeric(df["Tổng tiền"], errors="coerce").fillna(0).astype(int)
+    
+    # Gom theo tên
     df_stats = df.groupby("Tên", as_index=False).agg({
         "Số trận thua": "sum",
-        "Giá": "first"
+        "Tổng tiền": "sum"
     })
-    df_stats["Tổng tiền"] = df_stats["Số trận thua"] * df_stats["Giá"]
 
-    total = int(pd.to_numeric(df_stats["Tổng tiền"], errors="coerce").fillna(0).sum())
-    return df_stats, total, df  # trả cả df gốc để lấy ghi chú theo tháng
+    total = int(df_stats["Tổng tiền"].sum())
+    return df_stats, total, df
 
 def show_stats_page():
-    st.subheader("📊 Bảng thống kê")
+    st.subheader("Bảng thống kê")
 
     df_matches = load_sheet("matches")
     if df_matches.empty:
@@ -71,7 +71,7 @@ def show_stats_page():
         return
 
     st.dataframe(df_stats, use_container_width=True)
-    st.markdown(f"### 💰 Tổng thu: **{total:,}** VND")
+    st.markdown(f"###  Tổng thu: **{total:,}** VND")
 
     # Lấy ghi chú theo tháng (1 ngày 1 ghi chú)
     notes = {}
@@ -81,18 +81,18 @@ def show_stats_page():
             notes[row["Ngày"]] = note
 
     if notes:
-        st.markdown("### 📝 Các ghi chú trong tháng:")
+        st.markdown("###  Các ghi chú trong tháng:")
         for ngay, note in sorted(notes.items()):
             st.markdown(f"{ngay}: {note}")
 
     # Biểu đồ
-    member_names = set(members_df["Tên"].astype(str).str.strip().tolist())
-    colors = ["#1f77b4" if name in member_names else "#ff7f0e" for name in df_stats["Tên"]]
+    # member_names = set(members_df["Tên"].astype(str).str.strip().tolist())
+    # colors = ["#1f77b4" if name in member_names else "#ff7f0e" for name in df_stats["Tên"]]
 
     fig, ax = plt.subplots()
     df_stats = df_stats.sort_values("Tổng tiền", ascending=False)
-    bars = ax.bar(df_stats["Tên"], df_stats["Tổng tiền"], color=colors)
-    
+    bars = ax.bar(df_stats["Tên"], df_stats["Tổng tiền"])
+
     # Hiển thị số trên mỗi cột
     for bar in bars:
         height = bar.get_height()
@@ -104,6 +104,6 @@ def show_stats_page():
         )
     ax.set_ylabel("Tổng tiền (VND)")
     ax.set_title("Thống kê thu theo từng người")
-    ax.set_xticklabels(df_stats["Tên"], rotation=90, ha="right")
+    ax.set_xticklabels(df_stats["Tên"], rotation=0, ha="right")
     ax.grid(True, axis="y")
     st.pyplot(fig)

@@ -40,7 +40,7 @@ def show_match_page():
 
     # Form nhập
     with st.form("match_form", clear_on_submit=True):
-        tran_thua = st.text_input("Cặp thua (ngăn cách bằng dấu ,)")
+        tran_thua = st.text_input("Cặp thua (giữa các cặp ngăn bằng dấu ,)")
         ghichu = st.text_input("Ghi chú")
         gia_input = st.number_input(
             "Giá mới (nếu có giá khác hãy nhập giá 1 trận)",
