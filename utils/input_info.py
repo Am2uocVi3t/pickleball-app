@@ -108,36 +108,41 @@ def show_match_page():
         st.info("Không có trận thua cho ngày đã chọn.")
         return
 
-    # Header
-    h1, h2, h3, h4, h5 = st.columns([2,3,3,3,1])
-    h1.markdown("**Ngày**")
-    h2.markdown("**Tên**")
-    h3.markdown("**Ghi chú**")
-    h4.markdown("**Giá**")
-    h5.markdown("**Xóa**")
+    # Tạo DataFrame gọn hơn
+    df_show = df_filtered.copy()
+    df_show = df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá"]]
+    df_show["Giá hiển thị"] = df_show["Giá"].apply(lambda x: f"{x*2:,} VNĐ" if x > 0 else "")
 
-    for idx, row in df_filtered.iterrows():
-        c1, c2, c3, c4, c5 = st.columns([2,3,3,3,1])
-        c1.write(row["Ngày"])
-        c2.write(row["Cặp thua"])
-        c3.write(row["Ghi chú"] if row["Ghi chú"] else "")
+    st.dataframe(df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá hiển thị"]], use_container_width=True)
 
+    # Toggle ẩn/hiện danh sách xoá
+    if "show_delete_list" not in st.session_state:
+        st.session_state.show_delete_list = False
 
-        if int(row["Giá"]) > 0:
-        # Nếu có giá nhập từ form thì hiển thị gấp đôi (giá cặp)
-            c4.write(f"{int(row['Giá']) * 2:,} VNĐ")
-        else:
-            # Nếu không có giá override thì để trống
-            c4.write("")
+    col1, col2 = st.columns([8, 2])
+    with col1:
+        st.subheader("Xoá trận")
+    with col2:
+        if st.button("👁", key="toggle_show_list"):
+            st.session_state.show_delete_list = not st.session_state.show_delete_list
 
-        if c5.button("❌", key=f"del_{idx}"):
+    if st.session_state.show_delete_list:
+        # 👉 Nút xoá tất cả trước khi liệt kê từng dòng
+        if st.button("Xoá tất cả trong ngày", key=f"delete_all_{ngay_str}"):
             df_all = load_matches()
-            if idx in df_all.index:
-                df_all = df_all.drop(idx).reset_index(drop=True)
-                save_matches(df_all)
-                st.success("Đã xóa 1 dòng.")
-                st.rerun()
-                return
-            else:
-                st.warning("Không tìm thấy dòng để xóa.")
-                return
+            df_all = df_all[df_all["Ngày"] != ngay_str].reset_index(drop=True)
+            save_matches(df_all)
+            st.success(f"Đã xoá toàn bộ dữ liệu ngày {ngay_str}.")
+            st.rerun()
+
+        # Liệt kê từng dòng để xoá riêng
+        for idx, row in df_filtered.iterrows():
+            col1, col2 = st.columns([6,1])
+            col1.write(f"{row['Ngày']} - {row['Cặp thua']}")
+            if col2.button("❌", key=f"del_{ngay_str}_{idx}"):
+                df_all = load_matches()
+                if idx in df_all.index:
+                    df_all = df_all.drop(idx).reset_index(drop=True)
+                    save_matches(df_all)
+                    st.success("Đã xóa 1 dòng.")
+                    st.rerun()
