@@ -31,7 +31,7 @@ def get_stats(df_matches, members_df):
     df = pd.DataFrame(rows)
     df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(0).astype(int)
     df["Số trận thua"] = pd.to_numeric(df["Số trận thua"], errors="coerce").fillna(0).astype(int)
-    
+
     df_stats = df.groupby("Tên", as_index=False).agg({
         "Số trận thua": "sum",
         "Giá": "first"
@@ -91,9 +91,19 @@ def show_stats_page():
 
     fig, ax = plt.subplots()
     df_stats = df_stats.sort_values("Tổng tiền", ascending=False)
-    ax.bar(df_stats["Tên"], df_stats["Tổng tiền"], color=colors)
+    bars = ax.bar(df_stats["Tên"], df_stats["Tổng tiền"], color=colors)
+    
+    # Hiển thị số trên mỗi cột
+    for bar in bars:
+        height = bar.get_height()
+        ax.text(
+            bar.get_x() + bar.get_width() / 2,
+            height,
+            f"{height:,}",       # format có dấu phẩy
+            ha="center", va="bottom", fontsize=9
+        )
     ax.set_ylabel("Tổng tiền (VND)")
     ax.set_title("Thống kê thu theo từng người")
-    ax.set_xticklabels(df_stats["Tên"], rotation=45, ha="right")
+    ax.set_xticklabels(df_stats["Tên"], rotation=90, ha="right")
     ax.grid(True, axis="y")
     st.pyplot(fig)
