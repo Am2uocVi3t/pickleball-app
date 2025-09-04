@@ -128,7 +128,7 @@ def show_match_page():
         # Liệt kê từng dòng để xoá riêng
         for idx, row in df_filtered.iterrows():
             col1, col2 = st.columns([6,1])
-            col1.write(f"{row['Ngày']} - {row['Cặp thua']}")
+            col1.write(f"{row['Ngày']} - {row['Trận thua']}")
             if col2.button("❌", key=f"del_{ngay_str}_{idx}"):
                 df_all = load_matches()
                 if idx in df_all.index:
