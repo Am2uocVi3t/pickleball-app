@@ -60,7 +60,7 @@ def show_match_page():
                     
                 new_rows.append({
                 "Ngày": ngay_str,
-                "Cặp thua": " ".join(name),
+                "Trận thua": " ".join(name),
                 "Ghi chú": ghichu if ghichu.strip() else "",
                 "Giá": fee
                 })
@@ -100,10 +100,10 @@ def show_match_page():
 
     # Tạo DataFrame gọn hơn
     df_show = df_filtered.copy()
-    df_show = df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá"]]
+    df_show = df_show[["Ngày", "Trận thua", "Ghi chú", "Giá"]]
     df_show["Giá/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")
 
-    st.dataframe(df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá/người"]], use_container_width=True)
+    st.dataframe(df_show[["Ngày", "Trận thua", "Ghi chú", "Giá/người"]], use_container_width=True)
 
     # Toggle ẩn/hiện danh sách xoá
     if "show_delete_list" not in st.session_state:

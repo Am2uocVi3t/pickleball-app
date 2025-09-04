@@ -9,12 +9,12 @@ def load_matches():
     # Đọc từ Google Sheets
     df = load_sheet("matches")
     if df.empty:
-        df = pd.DataFrame(columns=["Ngày","Cặp thua","Ghi chú","Giá"])
+        df = pd.DataFrame(columns=["Ngày","Trận thua","Ghi chú","Giá"])
 
     # Chuẩn hóa dữ liệu
     df = df.replace("nan", "", regex=False).fillna("")
     df["Ngày"] = df["Ngày"].astype(str).str.strip()
-    df["Cặp thua"] = df["Cặp thua"].astype(str).str.strip()
+    df["Trận thua"] = df["Trận thua"].astype(str).str.strip()
     df["Ghi chú"] = df["Ghi chú"].astype(str).str.strip()
 
     if "Giá" not in df.columns:
