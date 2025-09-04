@@ -1,8 +1,9 @@
+# utils/stats.py
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from utils.member import load_members
-from utils.gsheets import load_sheet
+from utils.gsheets import load_sheet  # load từ Google Sheets
 
 def get_stats(df_matches, members_df):
     if df_matches.empty:
@@ -31,7 +32,6 @@ def get_stats(df_matches, members_df):
     df = pd.DataFrame(rows)
     df["Số trận thua"] = pd.to_numeric(df["Số trận thua"], errors="coerce").fillna(0).astype(int)
     df["Tổng tiền"] = pd.to_numeric(df["Tổng tiền"], errors="coerce").fillna(0).astype(int)
-    
     # Gom theo tên
     df_stats = df.groupby("Tên", as_index=False).agg({
         "Số trận thua": "sum",
@@ -103,7 +103,7 @@ def show_stats_page():
             ha="center", va="bottom", fontsize=9
         )
     ax.set_ylabel("Tổng tiền (VND)")
-    ax.set_title("Thống kê thu theo từng người")
+    ax.set_title("Bảng xếp hạng")
     ax.set_xticklabels(df_stats["Tên"], rotation=0, ha="right")
     ax.grid(True, axis="y")
     st.pyplot(fig)

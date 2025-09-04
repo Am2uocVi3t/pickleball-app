@@ -4,7 +4,6 @@ from google.oauth2.service_account import Credentials
 import pandas as pd
 import gspread
 
-# 👇 Thay link Google Sheets của bạn vào đây
 SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1ThOEMd2B0q6BrW8h441eGxw5lXgr8FtTIwrDO_fKXGM/edit"
 
 # Kết nối tới Google Sheets

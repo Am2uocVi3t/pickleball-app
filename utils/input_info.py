@@ -2,7 +2,7 @@
 import streamlit as st
 import pandas as pd
 import os
-from utils.member import load_members
+# from utils.member import load_members
 from utils.gsheets import load_sheet, save_sheet
 
 
@@ -22,16 +22,6 @@ def load_matches():
 def save_matches(df: pd.DataFrame):
     save_sheet(SHEET_NAME, df)
 
-def format_team_name(s: str) -> str:
-    """Viết hoa chữ cái đầu mỗi từ, giữ nguyên phần còn lại."""
-    parts = [p for p in s.strip().split() if p]
-    res = []
-    for w in parts:
-        if len(w) == 0:
-            continue
-        res.append(w[0].upper() + w[1:])
-    return " ".join(res)
-
 def show_match_page():
     st.header("Nhập thông tin trận thua")
 
@@ -40,7 +30,7 @@ def show_match_page():
 
     # Form nhập
     with st.form("match_form", clear_on_submit=True):
-        tran_thua = st.text_input("Cặp thua (giữa các cặp ngăn bằng dấu ,)")
+        tran_thua = st.text_input("Trận thua (ngăn cách bằng dấu ,)")
         ghichu = st.text_input("Ghi chú")
         gia_input = st.number_input(
             "Giá mới (nếu có giá khác hãy nhập giá 1 trận)",
@@ -52,33 +42,33 @@ def show_match_page():
 
     if submitted:
         if not tran_thua or not tran_thua.strip():
-            st.warning("Vui lòng nhập Cặp thua!")
+            st.warning("Vui lòng nhập Trận thua!")
         else:
-            members_df = load_members()
-            items = [item.strip() for item in tran_thua.split(",") if item.strip()]
-            formatted = [format_team_name(it) for it in items]
-
             ngay_str = ngay_chon.strftime("%d/%m/%Y")
+            items = [item.strip() for item in tran_thua.split(",") if item.strip()]
             new_rows = []
-            for name in formatted:
-                if gia_input > 0:
-                    fee = int(gia_input / 2)
+            team = []
+            for it in items:
+                name = it.split()
+                team.append(name)
+            for name in team:
+                num_player = len(name)
+                if gia_input > 1:
+                    fee = int(gia_input / num_player)
                 else:
-                    if name in members_df["Tên"].values:
-                        fee = 5000
-                    else:
-                        fee = -1
+                    fee = -1
+                    
                 new_rows.append({
-                    "Ngày": ngay_str,
-                    "Cặp thua": name,
-                    "Ghi chú": ghichu if ghichu.strip() else "",
-                    "Giá": fee
+                "Ngày": ngay_str,
+                "Cặp thua": " ".join(name),
+                "Ghi chú": ghichu if ghichu.strip() else "",
+                "Giá": fee
                 })
 
             df_all = load_matches()
             df_all = pd.concat([df_all, pd.DataFrame(new_rows)], ignore_index=True)
             save_matches(df_all)
-            st.success(f"Đã lưu {len(formatted)} cặp thua (ngày {ngay_str}).")
+            st.success(f"Đã lưu {len(items)} trận thua (ngày {ngay_str}).")
 
     # Toggle ẩn/hiện danh sách
     if "show_list" not in st.session_state:
@@ -111,9 +101,9 @@ def show_match_page():
     # Tạo DataFrame gọn hơn
     df_show = df_filtered.copy()
     df_show = df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá"]]
-    df_show["Giá hiển thị"] = df_show["Giá"].apply(lambda x: f"{x*2:,} VNĐ" if x > 0 else "")
+    df_show["Giá/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")
 
-    st.dataframe(df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá hiển thị"]], use_container_width=True)
+    st.dataframe(df_show[["Ngày", "Cặp thua", "Ghi chú", "Giá/người"]], use_container_width=True)
 
     # Toggle ẩn/hiện danh sách xoá
     if "show_delete_list" not in st.session_state:
