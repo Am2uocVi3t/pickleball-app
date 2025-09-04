@@ -85,10 +85,10 @@ def show_detail_page():
         return
     st.dataframe(df_detail, use_container_width=True)
 
-    st.markdown("### Tổng tiền từng người")
-    df_simple = (
-        df_detail.groupby(["Ngày", "Tên"], as_index=False)["Tổng tiền"].sum()
-        .sort_values(["Ngày", "Tên"])
-        .reset_index(drop=True)
-    )
-    st.dataframe(df_simple, use_container_width=True)
+    # st.markdown("### Tổng tiền từng người")
+    # df_simple = (
+    #     df_detail.groupby(["Ngày", "Tên"], as_index=False)["Tổng tiền"].sum()
+    #     .sort_values(["Ngày", "Tên"])
+    #     .reset_index(drop=True)
+    # )
+    # st.dataframe(df_simple, use_container_width=True)
