@@ -18,7 +18,7 @@ def get_stats(df_matches, members_df):
         ghi_chu = row.get("Ghi chú", "")
         gia = int(row.get("Giá", -1))
         # Tách tên từ cột "Cặp thua" (có thể ngăn cách bằng dấu phẩy hoặc khoảng trắng)
-        names = [n.strip() for n in row["Cặp thua"].replace(",", " ").split() if n.strip()]
+        names = [n.strip() for n in row["Trận thua"].replace(",", " ").split() if n.strip()]
         for name in names:
             fee = gia if gia > 0 else gia_map.get(name, 5000)
             rows.append({
