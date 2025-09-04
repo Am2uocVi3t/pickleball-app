@@ -40,7 +40,7 @@ def get_detail_df(df_matches, month, year):
     records = []
     for _, row in df_filtered.iterrows():
         ngay = row["Ngày"]
-        pair = row["Cặp thua"]
+        pair = row["Trận thua"]
         ghi_chu = row.get("Ghi chú", "")
         gia = int(row.get("Giá", -1))
 
