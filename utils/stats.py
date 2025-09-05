@@ -4,10 +4,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 # from utils.member import load_members
 from utils.gsheets import load_sheet
+from utils.input_info import load_sheet
 
 def get_stats(df_matches, members_df):
     if df_matches.empty:
-        return pd.DataFrame(), 0, pd.DataFrame()
+        return pd.DataFrame(), 0
     
     # Tạo map giá thua
     gia_map = dict(zip(members_df["Tên"], members_df["Giá thua"]))
@@ -90,8 +91,9 @@ def show_stats_page():
             df_f_month = df_f_month.copy()
             df_f_month["Giá"] = pd.to_numeric(df_f_month["Giá"], errors="coerce").fillna(0).astype(int)
             df_f_month["Số tiền"] = df_f_month["Giá"].apply(lambda x: f"{x:+,} VND")
-            st.dataframe(df_f_month[["Ngày", "Ghi chú", "Số tiền"]], use_container_width=True)
-            total_funds = df_f_month["Giá"].sum()
+            df_manual = df_f_month[~df_f_month["Ghi chú"].str.startswith("Tổng thu quỹ tháng")]
+            st.dataframe(df_manual[["Ngày", "Ghi chú", "Số tiền"]], use_container_width=True)
+            total_funds = df_manual["Giá"].sum()
         else:
             total_funds = 0
             st.info("Không có dữ liệu thu chi trong tháng này.")
@@ -103,8 +105,9 @@ def show_stats_page():
     st.markdown("###  Tổng kết cuối tháng")
     st.write(f"- Tổng tiền thua các trận: **{total:,} VND**")
     st.write(f"- Tổng thu chi: **{total_funds:+,} VND**")
-    st.write(f"### **Tổng cộng: {final_total:,} VND**")
+    st.markdown(f"<h2 style='text-align: center;'>TỔNG CỘNG: {final_total:,} VND</h2>", unsafe_allow_html=True)
 
+    
     # Biểu đồ
     # member_names = set(members_df["Tên"].astype(str).str.strip().tolist())
     # colors = ["#1f77b4" if name in member_names else "#ff7f0e" for name in df_stats["Tên"]]
