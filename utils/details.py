@@ -9,17 +9,26 @@ def load_matches():
     # Đọc từ Google Sheets
     df = load_sheet("matches")
     if df.empty:
-        df = pd.DataFrame(columns=["Ngày","Trận thua","Ghi chú","Giá"])
+        df = pd.DataFrame(columns=["Ngày","Trận thua","Giá"])
 
     # Chuẩn hóa dữ liệu
     df = df.replace("nan", "", regex=False).fillna("")
     df["Ngày"] = df["Ngày"].astype(str).str.strip()
     df["Trận thua"] = df["Trận thua"].astype(str).str.strip()
-    df["Ghi chú"] = df["Ghi chú"].astype(str).str.strip()
 
     if "Giá" not in df.columns:
         df["Giá"] = -1
     df["Giá"] = df["Giá"].fillna(-1).astype(int)
+    return df
+
+def load_funds():
+    df = load_sheet("funds")
+    if df.empty:
+        df = pd.DataFrame(columns=["Ngày", "Ghi chú", "Giá"])
+    df = df.fillna("")
+    df["Ngày"] = df["Ngày"].astype(str).str.strip()
+    df["Ghi chú"] = df["Ghi chú"].astype(str).str.strip()
+    df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(0).astype(int)
     return df
 
 def get_detail_df(df_matches, month, year):
@@ -41,7 +50,6 @@ def get_detail_df(df_matches, month, year):
     for _, row in df_filtered.iterrows():
         ngay = row["Ngày"]
         pair = row["Trận thua"]
-        ghi_chu = row.get("Ghi chú", "")
         gia = int(row.get("Giá", -1))
 
         names = [n.strip() for n in pair.split() if n.strip()]
@@ -51,14 +59,13 @@ def get_detail_df(df_matches, month, year):
                 "Ngày": ngay,
                 "Tên": name,
                 "Số trận thua": 1,
-                "Giá": fee,
-                "Ghi chú": ghi_chu
+                "Giá": fee
             })
     if not records:
         return pd.DataFrame()
     
     df_detail = pd.DataFrame(records)
-    df_detail = df_detail.groupby(["Ngày","Tên","Giá", "Ghi chú"], as_index=False).agg({
+    df_detail = df_detail.groupby(["Ngày","Tên","Giá"], as_index=False).agg({
         "Số trận thua": "sum",
     }).sort_values(["Ngày", "Tên", "Giá"]).reset_index(drop=True)
 
@@ -67,8 +74,9 @@ def get_detail_df(df_matches, month, year):
 
 
 def show_detail_page():
-    st.subheader("Bảng chi tiết")
+    st.markdown("<h2 style='text-align: center;'>BẢNG CHI TIẾT TỪNG NGÀY</h2>", unsafe_allow_html=True)
 
+    st.subheader("Bảng chi tiết từng giá")
     df_matches = load_matches()
     if df_matches.empty:
         st.info("Chưa có dữ liệu trận thua nào.")
@@ -85,10 +93,30 @@ def show_detail_page():
         return
     st.dataframe(df_detail, use_container_width=True)
 
-    # st.markdown("### Tổng tiền từng người")
-    # df_simple = (
-    #     df_detail.groupby(["Ngày", "Tên"], as_index=False)["Tổng tiền"].sum()
-    #     .sort_values(["Ngày", "Tên"])
-    #     .reset_index(drop=True)
-    # )
-    # st.dataframe(df_simple, use_container_width=True)
+    # --- Tổng thu ---
+    st.subheader("Tổng tiền từng người")
+    df_simple = (
+        df_detail.groupby(["Ngày", "Tên"], as_index=False)["Tổng tiền"].sum()
+        .sort_values(["Ngày", "Tên"])
+        .reset_index(drop=True)
+    )
+    st.dataframe(df_simple, use_container_width=True)
+
+     # --- Quỹ (Funds) ---
+    st.subheader("Danh sách thu chi quỹ")
+    df_funds = load_funds()
+    if df_funds.empty:
+        st.info("Chưa có dữ liệu quỹ.")
+    else:
+        # Lọc theo tháng/năm
+        df_funds["Ngày_dt"] = pd.to_datetime(df_funds["Ngày"], format="%d/%m/%Y", errors="coerce")
+        df_f_month = df_funds[
+            (df_funds["Ngày_dt"].dt.month == month) &
+            (df_funds["Ngày_dt"].dt.year == year)
+        ]
+        if df_f_month.empty:
+            st.info("Không có dữ liệu trích thu trong tháng này.")
+        else:
+            df_f_month = df_f_month.copy()
+            df_f_month["Quỹ"] = df_f_month["Giá"].apply(lambda x: f"{x:+,} VNĐ")
+            st.dataframe(df_f_month[["Ngày", "Ghi chú", "Quỹ"]], use_container_width=True)

@@ -5,33 +5,51 @@ import os
 # from utils.member import load_members
 from utils.gsheets import load_sheet, save_sheet
 
-
+FUND_SHEET = "funds"
 SHEET_NAME = "matches"
 
+
+# -------- Matches ----------
 def load_matches():
     df = load_sheet(SHEET_NAME)
     if df.empty:
-        df = pd.DataFrame(columns=["Ngày", "Trận thua", "Ghi chú", "Giá"])
+        df = pd.DataFrame(columns=["Ngày", "Trận thua", "Giá"])
     df = df.replace("nan", "", regex=False).fillna("")
     df["Ngày"] = df["Ngày"].astype(str).str.strip()
     df["Trận thua"] = df["Trận thua"].astype(str).str.strip()
-    df["Ghi chú"] = df["Ghi chú"].astype(str).str.strip()
     df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(-1).astype(int)
     return df
 
 def save_matches(df: pd.DataFrame):
     save_sheet(SHEET_NAME, df)
 
-def show_match_page():
-    st.header("Nhập thông tin trận thua")
 
+# -------- Funds ----------
+def load_funds():
+    df = load_sheet(FUND_SHEET)
+    if df.empty:
+        df = pd.DataFrame(columns=["Ngày", "Ghi chú", "Giá"])
+    df = df.fillna("")
+    df["Ngày"] = df["Ngày"].astype(str).str.strip()
+    df["Ghi chú"] = df["Ghi chú"].astype(str).str.strip()
+    df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(0).astype(int)
+    return df
+
+def save_funds(df: pd.DataFrame):
+    save_sheet(FUND_SHEET, df)
+
+
+# -------- UI ----------
+def show_match_page():
+    st.markdown("<h2 style='text-align: center;'>BẢNG NHẬP THÔNG TIN</h2>", unsafe_allow_html=True)
+    
+    st.subheader("Thông tin trận thua")
     # Chọn ngày
     ngay_chon = st.date_input("Chọn ngày", format="DD/MM/YYYY")
 
     # Form nhập
     with st.form("match_form", clear_on_submit=True):
-        tran_thua = st.text_input("Trận thua (ngăn cách bằng dấu ,)")
-        ghichu = st.text_input("Ghi chú")
+        tran_thua = st.text_input("Trận thua")
         gia_input = st.number_input(
             "Giá mới (nếu có giá khác hãy nhập giá 1 trận)",
             min_value=0,
@@ -61,7 +79,6 @@ def show_match_page():
                 new_rows.append({
                 "Ngày": ngay_str,
                 "Trận thua": " ".join(name),
-                "Ghi chú": ghichu if ghichu.strip() else "",
                 "Giá": fee
                 })
 
@@ -70,22 +87,10 @@ def show_match_page():
             save_matches(df_all)
             st.success(f"Đã lưu {len(items)} trận thua (ngày {ngay_str}).")
 
-    # Toggle ẩn/hiện danh sách
-    if "show_list" not in st.session_state:
-        st.session_state.show_list = True
 
-    st.subheader("Danh sách trận thua")
-    col_h, col_btn = st.columns([8,1])
-    with col_h:
-        st.write("")
-    with col_btn:
-        if st.button("👁"):
-            st.session_state.show_list = not st.session_state.show_list
-
-    if not st.session_state.show_list:
-        return
 
     # Hiển thị danh sách trận thua theo ngày
+    st.subheader("Danh sách trận thua")
     df = load_matches()
     if df.empty:
         st.info("Chưa có dữ liệu.")
@@ -96,28 +101,14 @@ def show_match_page():
 
     if df_filtered.empty:
         st.info("Không có trận thua cho ngày đã chọn.")
-        return
+    else:
+        # Tạo DataFrame gọn hơn
+        df_show = df_filtered.copy()
+        # st.dataframe(df_show[["Ngày", "Trận thua", "Giá"]], use_container_width=True)
+        df_show["Giá mới/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")
+        st.dataframe(df_show[["Ngày", "Trận thua", "Giá mới/người"]], use_container_width=True)
 
-    # Tạo DataFrame gọn hơn
-    df_show = df_filtered.copy()
-    df_show = df_show[["Ngày", "Trận thua", "Ghi chú", "Giá"]]
-    df_show["Giá/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")
-
-    st.dataframe(df_show[["Ngày", "Trận thua", "Ghi chú", "Giá/người"]], use_container_width=True)
-
-    # Toggle ẩn/hiện danh sách xoá
-    if "show_delete_list" not in st.session_state:
-        st.session_state.show_delete_list = False
-
-    col1, col2 = st.columns([8, 2])
-    with col1:
-        st.subheader("Xoá trận")
-    with col2:
-        if st.button("👁", key="toggle_show_list"):
-            st.session_state.show_delete_list = not st.session_state.show_delete_list
-
-    if st.session_state.show_delete_list:
-        # 👉 Nút xoá tất cả trước khi liệt kê từng dòng
+        st.subheader("Xóa trận")
         if st.button("Xoá tất cả trong ngày", key=f"delete_all_{ngay_str}"):
             df_all = load_matches()
             df_all = df_all[df_all["Ngày"] != ngay_str].reset_index(drop=True)
@@ -135,4 +126,52 @@ def show_match_page():
                     df_all = df_all.drop(idx).reset_index(drop=True)
                     save_matches(df_all)
                     st.success("Đã xóa 1 dòng.")
+                    st.rerun()
+
+    # -------- Funds (Trích/Thu) ----------
+    st.subheader("Thu chi quỹ (Nếu có)")
+
+    with st.form("fund_form", clear_on_submit=True):
+        note = st.text_input("Ghi chú")
+        fund_value = st.number_input("Số tiền", step=1000, value=0)
+        fund_submit = st.form_submit_button("Lưu")
+
+    if fund_submit:
+        if fund_value != 0: 
+            df_funds = load_funds()
+            new_row = pd.DataFrame([{"Ngày": ngay_str, "Ghi chú": note, "Giá": int(fund_value)}])
+            df_funds = pd.concat([df_funds, new_row], ignore_index=True)
+            save_funds(df_funds)
+            st.success(f"Đã lưu vào quỹ {'thu' if fund_value>0 else 'chi'} {abs(fund_value):,} VNĐ")
+
+    # -------- Danh sách quỹ ----------
+    st.subheader("Danh sách thu chi quỹ")
+    df_funds = load_funds()
+    df_f_today = df_funds[df_funds["Ngày"] == ngay_str]
+
+    if df_f_today.empty:
+        st.info("Không có thu chi cho ngày này.")
+    else:
+        df_f_today = df_f_today.copy()
+        df_f_today["Giá"] = df_f_today["Giá"].apply(lambda x: f"{x:+,} VNĐ")
+        st.dataframe(df_f_today[["Ngày", "Ghi chú", "Giá"]], use_container_width=True)
+
+        # Nút xoá tất cả trong ngày
+        if st.button("Xoá tất cả quỹ trong ngày", key=f"del_fund_all_{ngay_str}"):
+            df_all = load_funds()
+            df_all = df_all[df_all["Ngày"] != ngay_str].reset_index(drop=True)
+            save_funds(df_all)
+            st.success(f"Đã xoá toàn bộ thu chi quỹ ngày {ngay_str}.")
+            st.rerun()
+
+        # Nút xoá từng dòng
+        for idx, row in df_f_today.iterrows():
+            col1, col2 = st.columns([6,1])
+            col1.write(f"{row['Ngày']} - {row['Ghi chú']} ({row['Giá']})")
+            if st.button("❌", key=f"del_fund_{ngay_str}_{idx}"):
+                df_all = load_funds()
+                if idx in df_all.index:
+                    df_all = df_all.drop(idx).reset_index(drop=True)
+                    save_funds(df_all)
+                    st.success("Đã xoá 1 dòng quỹ.")
                     st.rerun()

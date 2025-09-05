@@ -10,7 +10,7 @@ SHEET_NAME = "members"
 def load_members():
     df = load_sheet(SHEET_NAME)
     if df.empty:
-        df = pd.DataFrame(columns=["Tên", "Giá thua"])  # đảm bảo có cột
+        df = pd.DataFrame(columns=["Tên", "Giá thua"])
     df["Tên"] = df["Tên"].astype(str).str.strip()
     df["Giá thua"] = pd.to_numeric(df["Giá thua"], errors="coerce").fillna(0).astype(int)
     return df
@@ -20,7 +20,7 @@ def save_members(df: pd.DataFrame):
 
 # Hàm hiển thị giao diện hội viên
 def show_members_page():
-    st.title("Quản lý Hội viên")
+    st.markdown("<h2 style='text-align: center;'>QUẢN LÝ HỘI VIÊN</h2>", unsafe_allow_html=True)
 
     # Load dữ liệu
     members_df = load_members()
