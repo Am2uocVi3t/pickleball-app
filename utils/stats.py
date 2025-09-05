@@ -52,33 +52,59 @@ def show_stats_page():
         st.info("Chưa có dữ liệu.")
         return
 
-    if not df_matches.empty:
-        df_matches["Ngày_dt"] = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce")
-    if not df_funds.empty:
-        df_funds["Ngày_dt"] = pd.to_datetime(df_funds["Ngày"], format="%d/%m/%Y", errors="coerce")
+    # Nếu cả hai rỗng -> không có dữ liệu
+    if (df_matches is None or df_matches.empty) and (df_funds is None or df_funds.empty):
+        st.info("Chưa có dữ liệu.")
+        return
+
+    # Chuẩn hoá cột Ngày và tạo cột Ngày_dt cho cả 2 bảng (an toàn ngay cả khi rỗng)
+    if df_matches is None:
+        df_matches = pd.DataFrame(columns=["Ngày", "Trận thua", "Giá"])
+    df_matches["Ngày"] = df_matches.get("Ngày", "").astype(str)
+    df_matches["Ngày_dt"] = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce")
+
+    if df_funds is None:
+        df_funds = pd.DataFrame(columns=["Ngày", "Ghi chú", "Giá"])
+    df_funds["Ngày"] = df_funds.get("Ngày", "").astype(str)
+    df_funds["Ngày_dt"] = pd.to_datetime(df_funds["Ngày"], format="%d/%m/%Y", errors="coerce")
 
     # Chọn tháng/năm
     months = list(range(1,13))
     month = st.selectbox("Chọn tháng", months, index=pd.Timestamp.now().month-1)
 
-    years = sorted(df_matches["Ngày_dt"].dropna().dt.year.unique())
-    year = st.selectbox("Chọn năm", years, index=0)
-
-    # Lọc theo tháng/năm
-    df_filtered = df_matches[
-        (df_matches["Ngày_dt"].dt.month == month) &
-        (df_matches["Ngày_dt"].dt.year == year)
-    ]
-
-    members_df = load_sheet("members")
-    df_stats, total = get_stats(df_filtered, members_df)
-
-    if df_stats.empty:
-        st.info(f"Không có dữ liệu cho {month}/{year}.")
-        total = 0
+    # Chọn tháng/năm dựa trên dữ liệu có sẵn ở matches hoặc funds
+    years_matches = df_matches["Ngày_dt"].dropna().dt.year.unique().tolist() if not df_matches.empty else []
+    years_funds = df_funds["Ngày_dt"].dropna().dt.year.unique().tolist() if not df_funds.empty else []
+    years = sorted(set(years_matches) | set(years_funds))
+    if not years:
+        st.info("Chưa có dữ liệu năm nào để chọn.")
         return
-    st.dataframe(df_stats, use_container_width=True)
-    st.markdown(f"###  Tổng tiền trận thua: **{total:,}** VND")
+    
+    # Lọc theo tháng/năm
+    year = st.selectbox("Chọn năm", years, index=max(0, len(years)-1))
+    
+    # Lọc matches theo tháng/năm (an toàn nếu df_matches rỗng)
+    if not df_matches.empty:
+        df_filtered = df_matches[
+            (df_matches["Ngày_dt"].dt.month == month) &
+            (df_matches["Ngày_dt"].dt.year == year)
+        ].copy()
+    else:
+        df_filtered = pd.DataFrame(columns=df_matches.columns)
+
+    # Lấy thống kê từ matches (get_stats trả về df_stats, total)
+    members_df = load_sheet("members") if load_sheet is not None else pd.DataFrame()
+    if not df_filtered.empty:
+        df_stats, total = get_stats(df_filtered, members_df)
+    else:
+        df_stats, total = pd.DataFrame(), 0
+
+    if not df_stats.empty:
+        st.dataframe(df_stats, use_container_width=True)
+        st.markdown(f"###  Tổng tiền trận thua: **{total:,}** VND")
+    else:
+        st.info(f"Không có dữ liệu trận thua cho {month}/{year}.")
+        total = 0
 
     # --- Funds ---
     if not df_funds.empty:
@@ -133,3 +159,4 @@ def show_stats_page():
 
         ax.grid(True, axis="y")
         st.pyplot(fig)
+
