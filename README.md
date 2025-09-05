@@ -14,4 +14,4 @@
    pip install -r requirements.txt
 
 4. Chạy app:
-   streamlit run app.py
+   streamlit run main.py
