@@ -1,6 +1,6 @@
 # Pickleball App 🏓
 
-Ứng dụng web nhỏ dùng Streamlit để tính tiền thua trận trong pickleball.
+Ứng dụng trên web dành cho nội bộ pickleball để tính tiền thua trận và quỹ.
 
 ## Cách chạy local
 1. Tạo môi trường ảo:
