@@ -100,8 +100,8 @@ def show_stats_page():
         df_stats, total = pd.DataFrame(), 0
 
     if not df_stats.empty:
-        st.dataframe(df_stats, use_container_width=True)
-        st.markdown(f"###  Tổng tiền trận thua: **{total:,}** VND")
+        st.dataframe(df_stats.reset_index(drop=True), use_container_width=True, hide_index=True)
+        # st.markdown(f"###  Tổng tiền trận thua: **{total:,}**")
     else:
         st.info(f"Không có dữ liệu trận thua cho {month}/{year}.")
         total = 0
@@ -116,9 +116,9 @@ def show_stats_page():
             st.subheader("Thu/Chi Quỹ")
             df_f_month = df_f_month.copy()
             df_f_month["Giá"] = pd.to_numeric(df_f_month["Giá"], errors="coerce").fillna(0).astype(int)
-            df_f_month["Số tiền"] = df_f_month["Giá"].apply(lambda x: f"{x:+,} VND")
+            df_f_month["Số tiền"] = df_f_month["Giá"].apply(lambda x: f"{x:+,}")
             df_manual = df_f_month[~df_f_month["Ghi chú"].str.startswith("Tổng thu quỹ tháng")]
-            st.dataframe(df_manual[["Ngày", "Ghi chú", "Số tiền"]], use_container_width=True)
+            st.dataframe(df_manual[["Ngày", "Ghi chú", "Số tiền"]].reset_index(drop=True), use_container_width=True, hide_index=True)
             total_funds = df_manual["Giá"].sum()
         else:
             total_funds = 0
@@ -129,9 +129,9 @@ def show_stats_page():
     # --- Tổng kết ---
     final_total = total + total_funds
     st.markdown("###  Tổng kết cuối tháng")
-    st.write(f"- Tổng tiền thua các trận: **{total:,} VND**")
-    st.write(f"- Tổng thu chi: **{total_funds:+,} VND**")
-    st.markdown(f"<h2 style='text-align: center;'>TỔNG CỘNG: {final_total:,} VND</h2>", unsafe_allow_html=True)
+    st.write(f"- Tổng tiền thua các trận: **{total:,}**")
+    st.write(f"- Tổng thu chi: **{total_funds:+,}**")
+    st.markdown(f"<h2 style='text-align: center; color: #009900; font-weight: bold;'>TỔNG CỘNG: {final_total:,}</h2>", unsafe_allow_html=True)
 
     
     # Biểu đồ

@@ -3,7 +3,7 @@ import pandas as pd
 import os
 from utils.member import load_members   
 from utils.gsheets import load_sheet
-
+import datetime
 
 def load_matches():
     # Đọc từ Google Sheets
@@ -31,7 +31,7 @@ def load_funds():
     df["Giá"] = pd.to_numeric(df["Giá"], errors="coerce").fillna(0).astype(int)
     return df
 
-def get_detail_df(df_matches, month, year):
+def get_detail_df(df_matches, start_date, end_date):
     if df_matches.empty:
         return pd.DataFrame()
 
@@ -40,8 +40,8 @@ def get_detail_df(df_matches, month, year):
 
     df_matches["Ngày_dt"] = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce")
     df_filtered = df_matches[
-        (df_matches["Ngày_dt"].dt.month == month) &
-        (df_matches["Ngày_dt"].dt.year == year)
+        (df_matches["Ngày_dt"] >= start_date) &
+        (df_matches["Ngày_dt"] <= end_date)
     ]
     if df_filtered.empty:
         return pd.DataFrame()
@@ -82,16 +82,34 @@ def show_detail_page():
         st.info("Chưa có dữ liệu trận thua nào.")
         return
 
-    months = list(range(1,13))
-    month = st.selectbox("Chọn tháng", months, index=pd.Timestamp.now().month-1)
-    years = sorted(df_matches["Ngày"].apply(lambda x: int(x.split("/")[2].strip())).unique())
-    year = st.selectbox("Chọn năm", years, index=0)
+    # # Chọn khoảng ngày bằng text_input với định dạng dd/mm/yyyy
+    # min_date = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce").min()
+    # max_date = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce").max()
 
-    df_detail = get_detail_df(df_matches, month, year)
-    if df_detail.empty:
-        st.info(f"Không có dữ liệu cho {month}/{year}.")
+    today = datetime.datetime.today()
+    default_start = today.replace(day=1).strftime("%d/%m/%Y")  # Đầu tháng này
+    default_end = today.strftime("%d/%m/%Y")                   # Hôm nay
+
+    col1, col2 = st.columns(2)
+    with col1:
+        start_str = st.text_input("Từ ngày", default_start)
+    with col2:
+        end_str = st.text_input("Đến ngày", default_end)
+
+    # Kiểm tra và chuyển đổi
+    try:
+        start_date = pd.to_datetime(start_str, format="%d/%m/%Y")
+        end_date = pd.to_datetime(end_str, format="%d/%m/%Y")
+    except Exception:
+        st.error("Vui lòng nhập đúng định dạng dd/mm/yyyy.")
         return
-    st.dataframe(df_detail, use_container_width=True)
+
+
+    df_detail = get_detail_df(df_matches, pd.to_datetime(start_date), pd.to_datetime(end_date))
+    if df_detail.empty:
+        st.info(f"Không có dữ liệu trong khoảng {start_date.strftime('%d/%m/%Y')} - {end_date.strftime('%d/%m/%Y')}.")
+        return
+    st.dataframe(df_detail.reset_index(drop=True), use_container_width=True, hide_index=True)
 
     # --- Tổng thu ---
     st.subheader("Tổng tiền từng người")
@@ -100,7 +118,7 @@ def show_detail_page():
         .sort_values(["Ngày", "Tên"])
         .reset_index(drop=True)
     )
-    st.dataframe(df_simple, use_container_width=True)
+    st.dataframe(df_simple.reset_index(drop=True), use_container_width=True, hide_index=True)
 
      # --- Quỹ (Funds) ---
     st.subheader("Danh sách thu chi quỹ")
@@ -108,15 +126,15 @@ def show_detail_page():
     if df_funds.empty:
         st.info("Chưa có dữ liệu quỹ.")
     else:
-        # Lọc theo tháng/năm
+        # Lọc theo khoảng ngày
         df_funds["Ngày_dt"] = pd.to_datetime(df_funds["Ngày"], format="%d/%m/%Y", errors="coerce")
         df_f_month = df_funds[
-            (df_funds["Ngày_dt"].dt.month == month) &
-            (df_funds["Ngày_dt"].dt.year == year)
+            (df_funds["Ngày_dt"] >= pd.to_datetime(start_date)) &
+            (df_funds["Ngày_dt"] <= pd.to_datetime(end_date))
         ]
         if df_f_month.empty:
             st.info("Không có dữ liệu trích thu trong tháng này.")
         else:
             df_f_month = df_f_month.copy()
-            df_f_month["Quỹ"] = df_f_month["Giá"].apply(lambda x: f"{x:+,} VNĐ")
-            st.dataframe(df_f_month[["Ngày", "Ghi chú", "Quỹ"]], use_container_width=True)
+            df_f_month["Quỹ"] = df_f_month["Giá"].apply(lambda x: f"{x:+,}")
+            st.dataframe(df_f_month[["Ngày", "Ghi chú", "Quỹ"]].reset_index(drop=True), use_container_width=True, hide_index=True)

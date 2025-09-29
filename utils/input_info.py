@@ -92,24 +92,24 @@ def show_match_page():
         df_show = df_filtered.copy()
         # st.dataframe(df_show[["Ngày", "Trận thua", "Giá"]], use_container_width=True)
         df_show["Giá mới/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")
-        st.dataframe(df_show[["Ngày", "Trận thua", "Giá mới/người"]], use_container_width=True)
+        st.dataframe(df_show[["Ngày", "Trận thua", "Giá mới/người"]].reset_index(drop=True), use_container_width=True, hide_index=True)
 
-        st.subheader("Xóa trận")
-        if st.button("Xoá tất cả trong ngày", key=f"delete_all_{ngay_str}"):
-            df_all = load_matches()
-            df_all = df_all[df_all["Ngày"] != ngay_str].reset_index(drop=True)
-            save_matches(df_all)
-            st.success(f"Đã xoá toàn bộ dữ liệu ngày {ngay_str}.")
-            st.rerun()
+        # st.subheader("Xóa trận")
+        # if st.button("Xoá tất cả trong ngày", key=f"delete_all_{ngay_str}"):
+        #     df_all = load_matches()
+        #     df_all = df_all[df_all["Ngày"] != ngay_str].reset_index(drop=True)
+        #     save_matches(df_all)
+        #     st.success(f"Đã xoá toàn bộ dữ liệu ngày {ngay_str}.")
+        #     st.rerun()
 
-        # Liệt kê từng dòng để xoá riêng
-        for idx, row in df_filtered.iterrows():
-            col1, col2 = st.columns([6,1])
-            col1.write(f"{row['Ngày']} - {row['Trận thua']}")
-            if col2.button("❌", key=f"del_{ngay_str}_{idx}"):
-                df_all = load_matches()
-                if idx in df_all.index:
-                    df_all = df_all.drop(idx).reset_index(drop=True)
-                    save_matches(df_all)
-                    st.success("Đã xóa 1 dòng.")
-                    st.rerun()
+        # # Liệt kê từng dòng để xoá riêng
+        # for idx, row in df_filtered.iterrows():
+        #     col1, col2 = st.columns([6,1])
+        #     col1.write(f"{row['Ngày']} - {row['Trận thua']}")
+        #     if col2.button("❌", key=f"del_{ngay_str}_{idx}"):
+        #         df_all = load_matches()
+        #         if idx in df_all.index:
+        #             df_all = df_all.drop(idx).reset_index(drop=True)
+        #             save_matches(df_all)
+        #             st.success("Đã xóa 1 dòng.")
+        #             st.rerun()

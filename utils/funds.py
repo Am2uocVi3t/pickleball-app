@@ -77,10 +77,10 @@ def show_monthly_summary():
     
     # Format cột hiển thị
     monthly_summary["Tháng/Năm"] = monthly_summary["Tháng"].astype(str) + "/" + monthly_summary["Năm"].astype(str)
-    monthly_summary["Tổng"] = monthly_summary["Giá"].apply(lambda x: f"{x:+,} VNĐ")
+    monthly_summary["Tổng"] = monthly_summary["Giá"].apply(lambda x: f"{x:+,}")
     
     st.subheader("Tổng thu chi theo tháng")
-    st.dataframe(monthly_summary[["Tháng/Năm", "Tổng"]], use_container_width=True)
+    st.dataframe(monthly_summary[["Tháng/Năm", "Tổng"]].reset_index(drop=True), use_container_width=True, hide_index=True)
 
 
 
@@ -109,7 +109,7 @@ def show_fund_page():
             new_row = pd.DataFrame([{"Ngày": ngay_str, "Ghi chú": note, "Giá": int(fund_value)}])
             df_funds = pd.concat([df_funds, new_row], ignore_index=True)
             save_funds(df_funds)
-            st.success(f"Đã lưu vào quỹ {'thu' if fund_value>0 else 'chi'} {abs(fund_value):,} VNĐ")
+            st.success(f"Đã lưu vào quỹ {'thu' if fund_value>0 else 'chi'} {abs(fund_value):,}")
 
     # --- Lọc theo tháng/năm ---
     df = load_funds()
@@ -135,49 +135,49 @@ def show_fund_page():
         st.info("Không có thu chi trong tháng này.")
     else:
         df_month_show = df_month.copy()
-        df_month_show["Giá"] = df_month_show["Giá"].apply(lambda x: f"{x:+,} VNĐ")
-        st.dataframe(df_month_show[["Ngày", "Ghi chú", "Giá"]], use_container_width=True)
+        df_month_show["Giá"] = df_month_show["Giá"].apply(lambda x: f"{x:+,}")
+        st.dataframe(df_month_show[["Ngày", "Ghi chú", "Giá"]].reset_index(drop=True), use_container_width=True, hide_index=True)
 
-        # --- Nút xoá ---
-        st.markdown("### Xoá dữ liệu thu chi")
+        # # --- Nút xoá ---
+        # st.markdown("### Xoá dữ liệu thu chi")
 
-        # Xoá toàn bộ trong tháng đã chọn
-        if st.button(f"Xoá tất cả", key=f"del_fund_month_{month}_{year}"):
-            df_all = load_funds()
-            # chuyển ngày sang datetime để lọc an toàn
-            df_all["Ngày_dt"] = pd.to_datetime(df_all["Ngày"], format="%d/%m/%Y", errors="coerce")
-            df_all = df_all[~((df_all["Ngày_dt"].dt.month == month) & (df_all["Ngày_dt"].dt.year == year))]
-            df_all = df_all.reset_index(drop=True)
-            save_funds(df_all)
-            st.success(f"Đã xoá toàn bộ thu/chi trong tháng {month}/{year}.")
-            st.rerun()
+        # # Xoá toàn bộ trong tháng đã chọn
+        # if st.button(f"Xoá tất cả", key=f"del_fund_month_{month}_{year}"):
+        #     df_all = load_funds()
+        #     # chuyển ngày sang datetime để lọc an toàn
+        #     df_all["Ngày_dt"] = pd.to_datetime(df_all["Ngày"], format="%d/%m/%Y", errors="coerce")
+        #     df_all = df_all[~((df_all["Ngày_dt"].dt.month == month) & (df_all["Ngày_dt"].dt.year == year))]
+        #     df_all = df_all.reset_index(drop=True)
+        #     save_funds(df_all)
+        #     st.success(f"Đã xoá toàn bộ thu/chi trong tháng {month}/{year}.")
+        #     st.rerun()
 
-        # Hiện từng ngày và cho xóa từng dòng
-        for ngay, group in df_month.groupby("Ngày"):
-            st.markdown(f"**Ngày {ngay}**")
-            for _, row in group.iterrows():
-                col1, col2 = st.columns([6, 1])
-                col1.write(f"{row['Ghi chú']} ({row['Giá']:+,} VNĐ)")
-                # dùng row.name làm key để giữ unique, khi xóa thì tìm và xoá hàng tương ứng trong sheet
-                if col2.button("❌", key=f"del_fund_{ngay}_{row.name}"):
-                    df_all = load_funds()
-                    # tìm index đầu tiên khớp (Ngày, Ghi chú, Giá) để tránh sai index
-                    cond = (
-                        (df_all["Ngày"] == row["Ngày"]) &
-                        (df_all["Ghi chú"] == row["Ghi chú"]) &
-                        (pd.to_numeric(df_all["Giá"], errors="coerce").fillna(0).astype(int) == int(row["Giá"]))
-                    )
-                    idxs = df_all[cond].index.tolist()
-                    if idxs:
-                        df_all = df_all.drop(idxs[0]).reset_index(drop=True)
-                        save_funds(df_all)
-                        st.success("Đã xoá 1 dòng quỹ.")
-                        st.rerun()
-                    else:
-                        st.warning("Không tìm thấy dòng tương ứng để xóa.")
+        # # Hiện từng ngày và cho xóa từng dòng
+        # for ngay, group in df_month.groupby("Ngày"):
+        #     st.markdown(f"**Ngày {ngay}**")
+        #     for _, row in group.iterrows():
+        #         col1, col2 = st.columns([6, 1])
+        #         col1.write(f"{row['Ghi chú']} ({row['Giá']:+,} VNĐ)")
+        #         # dùng row.name làm key để giữ unique, khi xóa thì tìm và xoá hàng tương ứng trong sheet
+        #         if col2.button("❌", key=f"del_fund_{ngay}_{row.name}"):
+        #             df_all = load_funds()
+        #             # tìm index đầu tiên khớp (Ngày, Ghi chú, Giá) để tránh sai index
+        #             cond = (
+        #                 (df_all["Ngày"] == row["Ngày"]) &
+        #                 (df_all["Ghi chú"] == row["Ghi chú"]) &
+        #                 (pd.to_numeric(df_all["Giá"], errors="coerce").fillna(0).astype(int) == int(row["Giá"]))
+        #             )
+        #             idxs = df_all[cond].index.tolist()
+        #             if idxs:
+        #                 df_all = df_all.drop(idxs[0]).reset_index(drop=True)
+        #                 save_funds(df_all)
+        #                 st.success("Đã xoá 1 dòng quỹ.")
+        #                 st.rerun()
+        #             else:
+        #                 st.warning("Không tìm thấy dòng tương ứng để xóa.")
 
     show_monthly_summary()
 
     # --- Quỹ hiện tại (tổng tất cả các dòng) ---
     tong_quy = df["Giá"].sum()
-    st.markdown(f"<h2 style='text-align: center;'>QUỸ HIỆN TẠI: {tong_quy:,} VND</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h2 style='text-align: center; color: #009900; font-weight: bold;'>QUỸ HIỆN TẠI: {tong_quy:,}</h2>", unsafe_allow_html=True)
