@@ -131,7 +131,7 @@ def show_stats_page():
     st.markdown("###  Tổng kết cuối tháng")
     st.write(f"- Tổng tiền thua các trận: **{total:,}**")
     st.write(f"- Tổng thu chi: **{total_funds:+,}**")
-    st.markdown(f"<h2 style='text-align: center; color: #009900; font-weight: bold;'>TỔNG CỘNG: {final_total:,}</h2>", unsafe_allow_html=True)
+    st.markdown(f"<h5 style='text-align: center; color: #009900; font-weight: bold;'>TỔNG CỘNG: {final_total:,}</h5>", unsafe_allow_html=True)
 
     
     # Biểu đồ
