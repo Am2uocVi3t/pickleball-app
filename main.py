@@ -12,14 +12,14 @@ st.set_page_config(
     page_icon="https://img.freepik.com/premium-vector/pickleball-paddles-logo-pickleball-club-icon-vector_854827-129.jpg?w=2000", 
     layout="centered"
     )
-st.markdown(
-    """
-    <div style="position: absolute; top: 1rem; right: 1rem; z-index: 100;">
-        <img src="https://img.freepik.com/premium-vector/pickleball-paddles-logo-pickleball-club-icon-vector_854827-129.jpg?w=2000" width="60" style="border-radius: 50%;">
-    </div>
-    """,
-    unsafe_allow_html=True
-)
+# st.markdown(
+#     """
+#     <div style="position: absolute; top: 1rem; right: 1rem; z-index: 100;">
+#         <img src="https://img.freepik.com/premium-vector/pickleball-paddles-logo-pickleball-club-icon-vector_854827-129.jpg?w=2000" width="60" style="border-radius: 50%;">
+#     </div>
+#     """,
+#     unsafe_allow_html=True
+# )
 menu = st.sidebar.radio(
     "Menu", 
     ["Nhập thông tin", "Bảng chi tiết", "Thống kê", "Quỹ nhóm", "Hội viên"]
