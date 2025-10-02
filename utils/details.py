@@ -9,13 +9,13 @@ def load_matches():
     # Đọc từ Google Sheets
     df = load_sheet("matches")
     if df.empty:
-        df = pd.DataFrame(columns=["Ngày","Trận thua","Giá"])
+        df = pd.DataFrame(columns=["Ngày", "Đội thắng", "Đội thua","Giá"])
 
     # Chuẩn hóa dữ liệu
     df = df.replace("nan", "", regex=False).fillna("")
     df["Ngày"] = df["Ngày"].astype(str).str.strip()
-    df["Trận thua"] = df["Trận thua"].astype(str).str.strip()
-
+    df["Đội thua"] = df["Đội thua"].astype(str).str.strip()
+    df["Đội thắng"] = df["Đội thắng"].astype(str).str.strip()
     if "Giá" not in df.columns:
         df["Giá"] = -1
     df["Giá"] = df["Giá"].fillna(-1).astype(int)
@@ -49,25 +49,53 @@ def get_detail_df(df_matches, start_date, end_date):
     records = []
     for _, row in df_filtered.iterrows():
         ngay = row["Ngày"]
-        pair = row["Trận thua"]
+        doi_thang = [n.strip() for n in str(row["Đội thắng"]).split() if n.strip()]
+        doi_thua = [n.strip() for n in str(row["Đội thua"]).split() if n.strip()]
         gia = int(row.get("Giá", -1))
 
-        names = [n.strip() for n in pair.split() if n.strip()]
-        for name in names:
-            fee = gia if gia > 0 else int(gia_map.get(name, 5000))
+        # names = [n.strip() for n in doi_thua.split() if n.strip()]
+        for name in doi_thua:
+            if gia > 0:
+                fee = gia
+            else:
+                fee = gia_map.get(name, 5000)
             records.append({
                 "Ngày": ngay,
                 "Tên": name,
+                "Số trận thắng": 0,
                 "Số trận thua": 1,
-                "Giá": fee
+                "Giá": fee,
+                "Tổng tiền": fee
+            })
+
+        for name in doi_thang:
+            if gia > 0:
+                fee = gia
+            else:
+                fee = gia_map.get(name, 5000)
+            records.append({
+                "Ngày": ngay,
+                "Tên": name,
+                "Số trận thắng": 1,
+                "Số trận thua": 0,
+                "Giá": fee,
+                "Tổng tiền": 0
             })
     if not records:
         return pd.DataFrame()
     
     df_detail = pd.DataFrame(records)
-    df_detail = df_detail.groupby(["Ngày","Tên","Giá"], as_index=False).agg({
-        "Số trận thua": "sum",
-    }).sort_values(["Ngày", "Tên", "Giá"]).reset_index(drop=True)
+    df_detail = (
+        df_detail.groupby(["Ngày", "Tên"], as_index=False)
+        .agg({
+            "Số trận thua": "sum",
+            "Số trận thắng": "sum",
+            "Giá": "max",
+            "Tổng tiền": "sum"
+        })
+        .sort_values(["Ngày", "Tên"])
+        .reset_index(drop=True)
+    )
 
     df_detail["Tổng tiền"] = df_detail["Số trận thua"] * df_detail["Giá"]
     return df_detail
@@ -115,6 +143,7 @@ def show_detail_page():
     st.subheader("Tổng tiền từng người")
     df_simple = (
         df_detail.groupby(["Ngày", "Tên"], as_index=False)["Tổng tiền"].sum()
+        .query("`Tổng tiền` > 0")
         .sort_values(["Ngày", "Tên"])
         .reset_index(drop=True)
     )

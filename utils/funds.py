@@ -180,4 +180,8 @@ def show_fund_page():
 
     # --- Quỹ hiện tại (tổng tất cả các dòng) ---
     tong_quy = df["Giá"].sum()
-    st.markdown(f"<h2 style='text-align: center; color: #009900; font-weight: bold;'>QUỸ HIỆN TẠI: {tong_quy:,}</h2>", unsafe_allow_html=True)
+    color = "#009900" if tong_quy >= 0 else "#FF0000"
+    st.markdown(
+        f"<h2 style='text-align: center; color: {color}; font-weight: bold;'>QUỸ HIỆN TẠI: {tong_quy:,}</h2>",
+        unsafe_allow_html=True
+    )

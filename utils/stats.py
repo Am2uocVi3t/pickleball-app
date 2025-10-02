@@ -4,7 +4,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 # from utils.member import load_members
 from utils.gsheets import load_sheet
-from utils.input_info import load_sheet
+# from utils.input_info import load_sheet
 
 def get_stats(df_matches, members_df):
     if df_matches.empty:
@@ -17,23 +17,38 @@ def get_stats(df_matches, members_df):
     for _, row in df_matches.iterrows():
         ngay = row["Ngày"]
         gia = int(row.get("Giá", -1))
+
         # Tách tên từ cột "Trận thua" (có thể ngăn cách bằng dấu phẩy hoặc khoảng trắng)
-        names = [n.strip() for n in row["Trận thua"].replace(",", " ").split() if n.strip()]
-        for name in names:
+        loser = [n.strip() for n in row["Đội thua"].replace(",", " ").split() if n.strip()]
+        for name in loser:
             fee = gia if gia > 0 else gia_map.get(name, 5000)
             rows.append({
                 "Tên": name,
+                "Số trận thắng": 0,
                 "Số trận thua": 1,
                 "Tổng tiền": fee,
+                "Ngày": ngay
+            })
+
+        winners = [n.strip() for n in row["Đội thắng"].replace(",", " ").split() if n.strip()]
+        for name in winners:
+            rows.append({
+                "Tên": name,
+                "Số trận thắng": 1,
+                "Số trận thua": 0,
+                "Tổng tiền": 0,
                 "Ngày": ngay
             })
 
     df = pd.DataFrame(rows)
     df["Số trận thua"] = pd.to_numeric(df["Số trận thua"], errors="coerce").fillna(0).astype(int)
     df["Tổng tiền"] = pd.to_numeric(df["Tổng tiền"], errors="coerce").fillna(0).astype(int)
+    df["Số trận thắng"] = pd.to_numeric(df["Số trận thắng"], errors="coerce").fillna(0).astype(int)
+
     # Gom theo tên
     df_stats = df.groupby("Tên", as_index=False).agg({
         "Số trận thua": "sum",
+        "Số trận thắng": "sum",
         "Tổng tiền": "sum"
     })
 
@@ -58,9 +73,10 @@ def show_stats_page():
         return
 
     # Chuẩn hoá cột Ngày và tạo cột Ngày_dt cho cả 2 bảng (an toàn ngay cả khi rỗng)
-    if df_matches is None:
-        df_matches = pd.DataFrame(columns=["Ngày", "Trận thua", "Giá"])
-    df_matches["Ngày"] = df_matches.get("Ngày", "").astype(str)
+    if df_matches is None or df_matches.empty:
+        df_matches = pd.DataFrame(columns=["Ngày", "Đội thắng", "Đội thua", "Giá"])
+    else:
+        df_matches["Ngày"] = df_matches["Ngày"].astype(str)
     df_matches["Ngày_dt"] = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce")
 
     if df_funds is None:
@@ -131,7 +147,11 @@ def show_stats_page():
     st.markdown("###  Tổng kết cuối tháng")
     st.write(f"- Tổng tiền thua các trận: **{total:,}**")
     st.write(f"- Tổng thu chi: **{total_funds:+,}**")
-    st.markdown(f"<h5 style='text-align: center; color: #009900; font-weight: bold;'>TỔNG CỘNG: {final_total:,}</h5>", unsafe_allow_html=True)
+    color = "#009900" if final_total >= 0 else "#FF0000"
+    st.markdown(
+        f"<h5 style='text-align: center; color: {color}; font-weight: bold;'>TỔNG CỘNG: {final_total:,}</h5>", 
+        unsafe_allow_html=True
+    )
 
     
     # Biểu đồ
@@ -160,3 +180,26 @@ def show_stats_page():
         ax.grid(True, axis="y")
         st.pyplot(fig)
 
+    if not df_stats.empty:
+        df_ratio = df_stats.copy()
+        df_ratio["Tỉ lệ thua (%)"] = (
+            df_ratio["Số trận thua"] * 100 /
+            (df_ratio["Số trận thắng"] + df_ratio["Số trận thua"]).replace(0, 1)
+        ).round(1)
+
+        df_ratio = df_ratio.sort_values("Tỉ lệ thua (%)", ascending=False)
+
+        fig2, ax2 = plt.subplots()
+        bars2 = ax2.bar(df_ratio["Tên"], df_ratio["Tỉ lệ thua (%)"], color="orange")
+
+        for bar in bars2:
+            height = bar.get_height()
+            ax2.text(bar.get_x() + bar.get_width()/2, height,
+                    f"{height:.1f}%", ha="center", va="bottom", fontsize=9)
+
+        ax2.set_ylabel("Tỉ lệ thua (%)")
+        ax2.set_title("Tỉ lệ thua")
+        ax2.set_xticks(range(len(df_ratio["Tên"])))
+        ax2.set_xticklabels(df_ratio["Tên"], rotation=0, ha="center")
+        ax2.grid(True, axis="y")
+        st.pyplot(fig2)
