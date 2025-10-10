@@ -50,37 +50,59 @@ def get_detail_df(df_matches, start_date, end_date):
     for _, row in df_filtered.iterrows():
         ngay = row["Ngày"]
         doi_thang = [n.strip() for n in str(row["Đội thắng"]).split() if n.strip()]
-        doi_thua = [n.strip() for n in str(row["Đội thua"]).split() if n.strip()]
+        doi_thua_raw = str(row["Đội thua"])
         gia = int(row.get("Giá", -1))
+
+        if "(" in doi_thua_raw and ")" in doi_thua_raw:
+            doi_thua, doi_an_trang = doi_thua_raw.split("(")
+            doi_thua = [n.strip() for n in doi_thua.split() if n.strip()]
+            doi_an_trang = [n.strip() for n in doi_an_trang.replace(")", "").split() if n.strip()]
+        else:
+            doi_thua = [n.strip() for n in doi_thua_raw.split() if n.strip()]
+            doi_an_trang = []
 
         # names = [n.strip() for n in doi_thua.split() if n.strip()]
         for name in doi_thua:
             if gia > 0:
-                fee = gia
+                fee = int(gia)
             else:
-                fee = gia_map.get(name, 5000)
+                fee = int(gia_map.get(name, 5000))
+            if doi_an_trang:
+                total_fee = fee * 2
+            else:
+                total_fee = fee
             records.append({
                 "Ngày": ngay,
                 "Tên": name,
                 "Số trận thắng": 0,
                 "Số trận thua": 1,
                 "Giá": fee,
-                "Tổng tiền": fee
+                "Tổng tiền": total_fee
             })
 
         for name in doi_thang:
             if gia > 0:
-                fee = gia
+                fee = int(gia)
             else:
-                fee = gia_map.get(name, 5000)
-            records.append({
-                "Ngày": ngay,
-                "Tên": name,
-                "Số trận thắng": 1,
-                "Số trận thua": 0,
-                "Giá": fee,
-                "Tổng tiền": 0
-            })
+                fee = int(gia_map.get(name, 5000))
+            if name in doi_an_trang:
+                records.append({
+                    "Ngày": ngay,
+                    "Tên": name,
+                    "Số trận thắng": 1,
+                    "Số trận thua": 0,
+                    "Giá": fee,
+                    "Tổng tiền": -fee
+                })
+            else:
+                records.append({
+                    "Ngày": ngay,
+                    "Tên": name,
+                    "Số trận thắng": 1,
+                    "Số trận thua": 0,
+                    "Giá": fee,
+                    "Tổng tiền": 0
+                })
     if not records:
         return pd.DataFrame()
     
@@ -97,7 +119,7 @@ def get_detail_df(df_matches, start_date, end_date):
         .reset_index(drop=True)
     )
 
-    df_detail["Tổng tiền"] = df_detail["Số trận thua"] * df_detail["Giá"]
+    df_detail["Tổng tiền"] = df_detail["Tổng tiền"]
     return df_detail
 
 

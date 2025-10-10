@@ -36,8 +36,8 @@ def show_match_page():
 
     # Form nhập
     with st.form("match_form", clear_on_submit=True):
-        doi_thang = st.text_input("Đội thắng")
-        doi_thua = st.text_input("Đội thua")
+        doi_thang = st.text_input("🟩 Đội thắng")
+        doi_thua = st.text_input("🟥 Đội thua")
         gia_input = st.number_input(
             "Giá mới (nếu có giá khác)",
             min_value=0,
@@ -96,7 +96,7 @@ def show_match_page():
                 df_all = load_matches()
                 df_all = pd.concat([df_all, pd.DataFrame(new_rows)], ignore_index=True)
                 save_matches(df_all)
-                st.success(f"Đã lưu: {len(new_rows)} trận (ngày {ngay_str}).")
+                # st.success(f"Đã lưu: {len(new_rows)} trận (ngày {ngay_str}).")
             else: 
                 st.info("Không có dữ liệu để lưu.")
 
@@ -112,8 +112,12 @@ def show_match_page():
 
     if df_filtered.empty:
         st.info("Không có dữ liệu cho ngày đã chọn.")
+        # st.success(f"Không có trận đấu ngày {ngay_str}.")
+
     else:
         # Tạo DataFrame gọn hơn
+        st.success(f"Đã lưu: {len(df_filtered)} trận ngày {ngay_str}.")
+
         df_show = df_filtered.copy()
         # st.dataframe(df_show[["Ngày", "Trận thua", "Giá"]], use_container_width=True)
         df_show["Giá mới/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")

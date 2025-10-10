@@ -18,27 +18,64 @@ def get_stats(df_matches, members_df):
         ngay = row["Ngày"]
         gia = int(row.get("Giá", -1))
 
-        # Tách tên từ cột "Trận thua" (có thể ngăn cách bằng dấu phẩy hoặc khoảng trắng)
-        loser = [n.strip() for n in row["Đội thua"].replace(",", " ").split() if n.strip()]
-        for name in loser:
-            fee = gia if gia > 0 else gia_map.get(name, 5000)
+        # Đội thắng
+        winners = [n.strip() for n in str(row["Đội thắng"]).replace(",", " ").split() if n.strip()]
+
+        # Đội thua & kiểm tra ăn trắng
+        doi_thua_raw = str(row["Đội thua"])
+        if "(" in doi_thua_raw and ")" in doi_thua_raw:
+            # Trường hợp ăn trắng: "Hạnh Thành (Ty Triều)"
+            doi_thua, doi_an_trang = doi_thua_raw.split("(")
+            doi_thua = [n.strip() for n in doi_thua.split() if n.strip()]
+            doi_an_trang = doi_an_trang.replace(")", "").strip()
+            doi_an_trang = [n.strip() for n in doi_an_trang.split() if n.strip()]
+        else:
+            doi_thua = [n.strip() for n in doi_thua_raw.replace(",", " ").split() if n.strip()]
+            doi_an_trang = []
+
+        # Đội thua: cộng tiền, nếu bị ăn trắng thì cộng gấp đôi
+        for name in doi_thua:
+            if gia > 0:
+                fee = int(gia)
+            else:
+                fee = int(gia_map.get(name, 5000))
+            if doi_an_trang:
+                total_fee = fee * 2
+            else:
+                total_fee = fee
             rows.append({
                 "Tên": name,
                 "Số trận thắng": 0,
                 "Số trận thua": 1,
-                "Tổng tiền": fee,
+                "Tổng tiền": total_fee,
                 "Ngày": ngay
             })
 
-        winners = [n.strip() for n in row["Đội thắng"].replace(",", " ").split() if n.strip()]
+        # Đội thắng: nếu ăn trắng thì có thể trừ tiền (tuỳ quy định, ví dụ trừ lệ phí)
         for name in winners:
-            rows.append({
-                "Tên": name,
-                "Số trận thắng": 1,
-                "Số trận thua": 0,
-                "Tổng tiền": 0,
-                "Ngày": ngay
-            })
+            if gia > 0:
+                fee = int(gia)
+            else:
+                fee = int(gia_map.get(name, 5000))
+            if name in doi_an_trang:
+                # Ăn trắng: trừ tiền
+                rows.append({
+                    "Tên": name,
+                    "Số trận thắng": 1,
+                    "Số trận thua": 0,
+                    "Tổng tiền": -fee,
+                    "Ngày": ngay
+                })
+            else:
+                # Thắng bình thường: không cộng/trừ tiền
+                rows.append({
+                    "Tên": name,
+                    "Số trận thắng": 1,
+                    "Số trận thua": 0,
+                    "Tổng tiền": 0,
+                    "Ngày": ngay
+                })
+
 
     df = pd.DataFrame(rows)
     df["Số trận thua"] = pd.to_numeric(df["Số trận thua"], errors="coerce").fillna(0).astype(int)
