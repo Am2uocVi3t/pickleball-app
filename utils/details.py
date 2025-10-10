@@ -165,7 +165,7 @@ def show_detail_page():
     st.subheader("Tổng tiền từng người")
     df_simple = (
         df_detail.groupby(["Ngày", "Tên"], as_index=False)["Tổng tiền"].sum()
-        .query("`Tổng tiền` > 0")
+        .query("`Tổng tiền` != 0")
         .sort_values(["Ngày", "Tên"])
         .reset_index(drop=True)
     )

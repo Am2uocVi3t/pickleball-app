@@ -4,7 +4,7 @@ import pandas as pd
 import os
 # from utils.member import load_members
 from utils.gsheets import load_sheet, save_sheet
-
+import datetime
 
 FUND_SHEET = "funds"
 SHEET_NAME = "matches"
@@ -32,7 +32,11 @@ def show_match_page():
     
     st.subheader("Nhập thông tin trận thua")
     # Chọn ngày
-    ngay_chon = st.date_input("Chọn ngày", format="DD/MM/YYYY")
+    ngay_chon = st.date_input(
+        "Chọn ngày",
+        value=datetime.date.today(),
+        format="DD/MM/YYYY"
+    )
 
     # Form nhập
     with st.form("match_form", clear_on_submit=True):
