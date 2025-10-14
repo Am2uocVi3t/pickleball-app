@@ -5,6 +5,9 @@ import os
 # from utils.member import load_members
 from utils.gsheets import load_sheet, save_sheet
 import datetime
+import requests
+import time
+
 
 FUND_SHEET = "funds"
 SHEET_NAME = "matches"
@@ -29,8 +32,8 @@ def save_matches(df: pd.DataFrame):
 # -------- UI ----------
 def show_match_page():
     st.markdown("<h2 style='text-align: center;'>BẢNG NHẬP THÔNG TIN</h2>", unsafe_allow_html=True)
-    
-    st.subheader("Nhập thông tin trận thua")
+    st.subheader("Nhập thông tin trận đấu")
+
     # Chọn ngày
     ngay_chon = st.date_input(
         "Chọn ngày",
