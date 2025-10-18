@@ -3,6 +3,7 @@ import pandas as pd
 from utils.gsheets import load_sheet, save_sheet
 from utils.input_info import load_matches
 from utils.stats import get_stats
+import datetime
 
 
 FUND_SHEET = "funds"
@@ -83,7 +84,6 @@ def show_monthly_summary():
     st.dataframe(monthly_summary[["Tháng/Năm", "Tổng"]].reset_index(drop=True), use_container_width=True, hide_index=True)
 
 
-
 def show_fund_page():
     update_fund()
     st.markdown("<h2 style='text-align: center;'>QUỸ NHÓM</h2>", unsafe_allow_html=True)
@@ -124,19 +124,45 @@ def show_fund_page():
     df["Tháng"] = df["Ngày_dt"].dt.month
     df["Năm"] = df["Ngày_dt"].dt.year
 
-    col1, col2 = st.columns(2)
-    month = col1.selectbox("Chọn tháng", list(range(1, 13)), index=pd.Timestamp.now().month-1)
-    year = col2.selectbox("Chọn năm", sorted(df["Năm"].dropna().unique()), 
-                          index=len(sorted(df["Năm"].dropna().unique()))-1)
+    months = list(range(1, 13))
+    years = sorted(df["Năm"].dropna().unique())
+    now = datetime.datetime.now()
 
-    df_month = df[(df["Tháng"] == month) & (df["Năm"] == year)]
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        month_start = st.selectbox("Từ tháng", months, index=now.month-1)
+    with col2:
+        month_end = st.selectbox("Đến tháng", months, index=now.month-1)
+    with col3:
+        default_year_index = years.index(now.year) if now.year in years else len(years)-1
+        year = st.selectbox("Chọn năm", years, index=default_year_index)
 
+    if month_start > month_end:
+        st.warning("Tháng bắt đầu phải nhỏ hơn hoặc bằng tháng kết thúc.")
+        return
+
+    df_month = df[
+        (df["Năm"] == year) &
+        (df["Tháng"] >= month_start) &
+        (df["Tháng"] <= month_end)
+    ]
     if df_month.empty:
         st.info("Không có thu chi trong tháng này.")
     else:
         df_month_show = df_month.copy()
         df_month_show["Giá"] = df_month_show["Giá"].apply(lambda x: f"{x:+,}")
-        st.dataframe(df_month_show[["Ngày", "Ghi chú", "Giá"]].reset_index(drop=True), use_container_width=True, hide_index=True)
+        df_month_show = df_month_show.sort_values("Ngày_dt")
+        st.dataframe(
+            df_month_show[["Ngày", "Ghi chú", "Giá"]].reset_index(drop=True),
+            use_container_width=True,
+            hide_index=True
+        )
+        tong_thuchi = df_month["Giá"].sum()
+        color = "#009900" if tong_thuchi >= 0 else "#FF0000"
+        st.markdown(
+            f"<h5 style='text-align: right; color: {color}; font-weight: bold;'>TỔNG: {tong_thuchi:,} VNĐ</h5>",
+            unsafe_allow_html=True
+        )
 
         # # --- Nút xoá ---
         # st.markdown("### Xoá dữ liệu thu chi")

@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+import datetime
 # from utils.member import load_members
 from utils.gsheets import load_sheet
 # from utils.input_info import load_sheet
@@ -122,9 +123,8 @@ def show_stats_page():
     df_funds["Ngày_dt"] = pd.to_datetime(df_funds["Ngày"], format="%d/%m/%Y", errors="coerce")
 
     # Chọn tháng/năm
+    now = datetime.datetime.now()
     months = list(range(1,13))
-    month = st.selectbox("Chọn tháng", months, index=pd.Timestamp.now().month-1)
-
     # Chọn tháng/năm dựa trên dữ liệu có sẵn ở matches hoặc funds
     years_matches = df_matches["Ngày_dt"].dropna().dt.year.unique().tolist() if not df_matches.empty else []
     years_funds = df_funds["Ngày_dt"].dropna().dt.year.unique().tolist() if not df_funds.empty else []
@@ -133,17 +133,37 @@ def show_stats_page():
         st.info("Chưa có dữ liệu năm nào để chọn.")
         return
     
-    # Lọc theo tháng/năm
-    year = st.selectbox("Chọn năm", years, index=max(0, len(years)-1))
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        month_start = st.selectbox("Từ tháng", months, index=now.month-1)
+    with col2:
+        month_end = st.selectbox("Đến tháng", months, index=now.month-1)
+    with col3:
+        year = st.selectbox("Chọn năm", years, years.index(now.year) if now.year in years else len(years)-1)
+
+    if month_start > month_end:
+        st.warning("Tháng bắt đầu phải nhỏ hơn hoặc bằng tháng kết thúc.")
+        return
     
-    # Lọc matches theo tháng/năm (an toàn nếu df_matches rỗng)
+    # Lọc matches theo tháng/năm
     if not df_matches.empty:
         df_filtered = df_matches[
-            (df_matches["Ngày_dt"].dt.month == month) &
-            (df_matches["Ngày_dt"].dt.year == year)
+            (df_matches["Ngày_dt"].dt.year == year) &
+            (df_matches["Ngày_dt"].dt.month >= month_start) &
+            (df_matches["Ngày_dt"].dt.month <= month_end)
         ].copy()
     else:
         df_filtered = pd.DataFrame(columns=df_matches.columns)
+
+    # Lọc funds theo khoảng tháng/năm
+    if not df_funds.empty:
+        df_f_month = df_funds[
+            (df_funds["Ngày_dt"].dt.year == year) &
+            (df_funds["Ngày_dt"].dt.month >= month_start) &
+            (df_funds["Ngày_dt"].dt.month <= month_end)
+        ]
+    else:
+        df_f_month = pd.DataFrame(columns=df_funds.columns)
 
     # Lấy thống kê từ matches (get_stats trả về df_stats, total)
     members_df = load_sheet("members") if load_sheet is not None else pd.DataFrame()
@@ -156,28 +176,22 @@ def show_stats_page():
         st.dataframe(df_stats.reset_index(drop=True), use_container_width=True, hide_index=True)
         # st.markdown(f"###  Tổng tiền trận thua: **{total:,}**")
     else:
-        st.info(f"Không có dữ liệu trận thua cho {month}/{year}.")
+        st.info(f"Không có dữ liệu trận thua cho khoảng tháng {month_start}-{month_end}/{year}.")
         total = 0
 
     # --- Funds ---
-    if not df_funds.empty:
-        df_f_month = df_funds[
-            (df_funds["Ngày_dt"].dt.month == month) &
-            (df_funds["Ngày_dt"].dt.year == year)
-        ]
-        if not df_f_month.empty:
-            st.subheader("Thu/Chi Quỹ")
-            df_f_month = df_f_month.copy()
-            df_f_month["Giá"] = pd.to_numeric(df_f_month["Giá"], errors="coerce").fillna(0).astype(int)
-            df_f_month["Số tiền"] = df_f_month["Giá"].apply(lambda x: f"{x:+,}")
-            df_manual = df_f_month[~df_f_month["Ghi chú"].str.startswith("Tổng thu quỹ tháng")]
-            st.dataframe(df_manual[["Ngày", "Ghi chú", "Số tiền"]].reset_index(drop=True), use_container_width=True, hide_index=True)
-            total_funds = df_manual["Giá"].sum()
-        else:
-            total_funds = 0
-            st.info("Không có dữ liệu thu chi trong tháng này.")
+    if not df_f_month.empty:
+        st.subheader("Thu/Chi Quỹ")
+        df_f_month = df_f_month.copy()
+        df_f_month["Giá"] = pd.to_numeric(df_f_month["Giá"], errors="coerce").fillna(0).astype(int)
+        df_f_month["Số tiền"] = df_f_month["Giá"].apply(lambda x: f"{x:+,}")
+        df_manual = df_f_month[~df_f_month["Ghi chú"].str.startswith("Tổng thu quỹ tháng")]
+        st.dataframe(df_manual[["Ngày", "Ghi chú", "Số tiền"]].reset_index(drop=True), use_container_width=True, hide_index=True)
+        total_funds = df_manual["Giá"].sum()
     else:
         total_funds = 0
+        st.info("Không có dữ liệu thu chi trong khoảng này.")
+
 
     # --- Tổng kết ---
     final_total = total + total_funds
