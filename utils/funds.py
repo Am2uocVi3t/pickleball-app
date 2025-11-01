@@ -34,10 +34,10 @@ def update_fund():
     # Lấy tất cả (năm, tháng) có trận
     month_years = df_matches.dropna(subset=["Ngày_dt"]).groupby([df_matches["Ngày_dt"].dt.year,
                                                                 df_matches["Ngày_dt"].dt.month])
-
+    
+    today = pd.Timestamp.now()
     for (y, m), group in month_years:
         df_stats, total = get_stats(group, members_df)
-
         if total == 0:  
             continue  # không có gì thì bỏ qua
 
@@ -45,10 +45,22 @@ def update_fund():
         ngay_cuoi_thang = pd.Timestamp(year=y, month=m, day=1) + pd.offsets.MonthEnd(0)
         ngay_str = ngay_cuoi_thang.strftime("%d/%m/%Y")
 
+        # Ko update tháng cũ
+        if today > ngay_cuoi_thang:
+        # đã chốt sổ, chỉ thêm nếu chưa có (để lưu lần đầu)
+            if not ((df_funds["Ghi chú"] == f"Tổng thu quỹ tháng {m}") & 
+                    (df_funds["Ngày"] == ngay_str)).any():
+                new_row = pd.DataFrame([{
+                    "Ngày": ngay_str,
+                    "Ghi chú": f"Tổng thu quỹ tháng {m}",
+                    "Giá": total
+                }])
+                df_funds = pd.concat([df_funds, new_row], ignore_index=True)
+            continue  # bỏ qua update
+
         # xoá nếu đã có để tránh trùng
         mask = (df_funds["Ghi chú"] == f"Tổng thu quỹ tháng {m}") & (df_funds["Ngày"] == ngay_str)
         df_funds = df_funds[~mask]
-
         # thêm dòng mới
         new_row = pd.DataFrame([{
             "Ngày": ngay_str,

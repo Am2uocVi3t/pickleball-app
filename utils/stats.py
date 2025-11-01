@@ -173,7 +173,25 @@ def show_stats_page():
         df_stats, total = pd.DataFrame(), 0
 
     if not df_stats.empty:
-        st.dataframe(df_stats.reset_index(drop=True), use_container_width=True, hide_index=True)
+    # Tô màu cho cột Số trận thắng (xanh) và Số trận thua (đỏ nhạt)
+        def highlight_stats(val, col_name):
+            if col_name == "Số trận thắng":
+                color = "#d4edda"  # xanh nhạt
+            elif col_name == "Số trận thua":
+                color = "#f8d7da"  # đỏ nhạt
+            else:
+                color = ""
+            return f"background-color: {color}"
+
+        styled_df = df_stats.style.apply(
+            lambda col: [highlight_stats(v, col.name) for v in col],
+            axis=0
+        ).format({
+            "Tổng tiền": lambda x: f"{x:+,}"
+        })
+
+        st.dataframe(styled_df, use_container_width=True, hide_index=True)
+        # st.dataframe(df_stats.reset_index(drop=True), use_container_width=True, hide_index=True)
         # st.markdown(f"###  Tổng tiền trận thua: **{total:,}**")
     else:
         st.info(f"Không có dữ liệu trận thua cho khoảng tháng {month_start}-{month_end}/{year}.")

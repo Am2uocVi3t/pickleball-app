@@ -12,6 +12,7 @@ import time
 FUND_SHEET = "funds"
 SHEET_NAME = "matches"
 
+
 # -------- Matches ----------
 def load_matches():
     df = load_sheet(SHEET_NAME)
@@ -31,6 +32,54 @@ def save_matches(df: pd.DataFrame):
 
 # -------- UI ----------
 def show_match_page():
+    # --- Thêm CSS ---
+    st.markdown("""
+        <style>
+        /* Tô màu nền nhẹ và bo góc cho ô input */
+        div[data-testid="stTextInput"] label p {
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        /* Màu nền riêng cho đội thắng */
+        div[data-testid="stTextInput"]:has(label p:contains("Đội thắng")) {
+            background-color: #e6f8ec;  /* xanh nhạt */
+            border: 2px solid #1db954;  /* màu xanh pickleball */
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        /* Màu nền riêng cho đội thua */
+        div[data-testid="stTextInput"]:has(label p:contains("Đội thua")) {
+            background-color: #ffeaea;  /* đỏ nhạt */
+            border: 2px solid #ff4d4d;
+            border-radius: 10px;
+            padding: 10px;
+        }
+
+        /* Style cho nút Lưu */
+        div.stButton > button {
+            background-color: #1db954;
+            color: white;
+            font-weight: bold;
+            border-radius: 10px;
+            border: none;
+            padding: 0.6rem 1.2rem;
+            transition: 0.2s ease-in-out;
+        }
+        div.stButton > button:hover {
+            background-color: #18a84d;
+            transform: scale(1.05);
+        }
+
+        /* Căn giữa tiêu đề */
+        h2 {
+            color: #1db954;
+            font-family: 'Arial Rounded MT Bold', sans-serif;
+        }
+        </style>
+    """, unsafe_allow_html=True)
     st.markdown("<h2 style='text-align: center;'>BẢNG NHẬP THÔNG TIN</h2>", unsafe_allow_html=True)
     st.subheader("Nhập thông tin trận đấu")
 
@@ -108,7 +157,7 @@ def show_match_page():
                 st.info("Không có dữ liệu để lưu.")
 
     # Hiển thị danh sách trận thua theo ngày
-    st.subheader("Danh sách trận thua")
+    st.subheader("Danh sách trận đấu")
     df = load_matches()
     if df.empty:
         st.info("Chưa có dữ liệu.")
@@ -124,7 +173,6 @@ def show_match_page():
     else:
         # Tạo DataFrame gọn hơn
         st.success(f"Đã lưu: {len(df_filtered)} trận ngày {ngay_str}.")
-
         df_show = df_filtered.copy()
         # st.dataframe(df_show[["Ngày", "Trận thua", "Giá"]], use_container_width=True)
         df_show["Giá mới/người"] = df_show["Giá"].apply(lambda x: f"{x:,} VNĐ" if x > 0 else "")
