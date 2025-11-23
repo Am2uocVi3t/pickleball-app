@@ -5,6 +5,7 @@ from utils.input_info import show_match_page
 from utils.details import show_detail_page
 from utils.stats import show_stats_page
 from utils.funds import show_fund_page
+from utils.charts import show_charts_page
 
 
 st.set_page_config(
@@ -107,7 +108,7 @@ div[role="radiogroup"] input[type="radio"] {
 # )
 menu = st.sidebar.radio(
     "", 
-    ["Nhập thông tin", "Bảng chi tiết", "Thống kê", "Quỹ nhóm", "Hội viên"]
+    ["Nhập thông tin", "Bảng chi tiết", "Thống kê", "Quỹ nhóm", "Hội viên", "Biểu đồ"]
 )
 
 if menu == "Hội viên":
@@ -120,3 +121,5 @@ elif menu == "Bảng chi tiết":
     show_detail_page()
 elif menu == "Quỹ nhóm":
     show_fund_page()
+elif menu == "Biểu đồ":
+    show_charts_page()

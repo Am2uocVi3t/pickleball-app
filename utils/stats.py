@@ -223,52 +223,52 @@ def show_stats_page():
     )
 
     
-    # Biểu đồ
-    # member_names = set(members_df["Tên"].astype(str).str.strip().tolist())
-    # colors = ["#1f77b4" if name in member_names else "#ff7f0e" for name in df_stats["Tên"]]
-    if not df_stats.empty:
-        fig, ax = plt.subplots()
-        df_stats = df_stats.sort_values("Tổng tiền", ascending=False)
-        bars = ax.bar(df_stats["Tên"], df_stats["Tổng tiền"])
+    # # Biểu đồ
+    # # member_names = set(members_df["Tên"].astype(str).str.strip().tolist())
+    # # colors = ["#1f77b4" if name in member_names else "#ff7f0e" for name in df_stats["Tên"]]
+    # if not df_stats.empty:
+    #     fig, ax = plt.subplots()
+    #     df_stats = df_stats.sort_values("Tổng tiền", ascending=False)
+    #     bars = ax.bar(df_stats["Tên"], df_stats["Tổng tiền"])
 
-        # Hiển thị số trên mỗi cột
-        for bar in bars:
-            height = bar.get_height()
-            ax.text(
-                bar.get_x() + bar.get_width() / 2,
-                height,
-                f"{height:,}",       # format có dấu phẩy
-                ha="center", va="bottom", fontsize=9
-            )
-        ax.set_ylabel("Tổng tiền (VND)")
-        ax.set_title("Bảng xếp hạng")
+    #     # Hiển thị số trên mỗi cột
+    #     for bar in bars:
+    #         height = bar.get_height()
+    #         ax.text(
+    #             bar.get_x() + bar.get_width() / 2,
+    #             height,
+    #             f"{height:,}",       # format có dấu phẩy
+    #             ha="center", va="bottom", fontsize=9
+    #         )
+    #     ax.set_ylabel("Tổng tiền (VND)")
+    #     ax.set_title("Bảng xếp hạng")
         
-        ax.set_xticks(range(len(df_stats["Tên"])))
-        ax.set_xticklabels(df_stats["Tên"], rotation=0, ha="center")
+    #     ax.set_xticks(range(len(df_stats["Tên"])))
+    #     ax.set_xticklabels(df_stats["Tên"], rotation=0, ha="center")
 
-        ax.grid(True, axis="y")
-        st.pyplot(fig)
+    #     ax.grid(True, axis="y")
+    #     st.pyplot(fig)
 
-    if not df_stats.empty:
-        df_ratio = df_stats.copy()
-        df_ratio["Tỉ lệ thua (%)"] = (
-            df_ratio["Số trận thua"] * 100 /
-            (df_ratio["Số trận thắng"] + df_ratio["Số trận thua"]).replace(0, 1)
-        ).round(1)
+    # if not df_stats.empty:
+    #     df_ratio = df_stats.copy()
+    #     df_ratio["Tỉ lệ thua (%)"] = (
+    #         df_ratio["Số trận thua"] * 100 /
+    #         (df_ratio["Số trận thắng"] + df_ratio["Số trận thua"]).replace(0, 1)
+    #     ).round(1)
 
-        df_ratio = df_ratio.sort_values("Tỉ lệ thua (%)", ascending=False)
+    #     df_ratio = df_ratio.sort_values("Tỉ lệ thua (%)", ascending=False)
 
-        fig2, ax2 = plt.subplots()
-        bars2 = ax2.bar(df_ratio["Tên"], df_ratio["Tỉ lệ thua (%)"], color="orange")
+    #     fig2, ax2 = plt.subplots()
+    #     bars2 = ax2.bar(df_ratio["Tên"], df_ratio["Tỉ lệ thua (%)"], color="orange")
 
-        for bar in bars2:
-            height = bar.get_height()
-            ax2.text(bar.get_x() + bar.get_width()/2, height,
-                    f"{height:.1f}%", ha="center", va="bottom", fontsize=9)
+    #     for bar in bars2:
+    #         height = bar.get_height()
+    #         ax2.text(bar.get_x() + bar.get_width()/2, height,
+    #                 f"{height:.1f}%", ha="center", va="bottom", fontsize=9)
 
-        ax2.set_ylabel("Tỉ lệ thua (%)")
-        ax2.set_title("Tỉ lệ thua")
-        ax2.set_xticks(range(len(df_ratio["Tên"])))
-        ax2.set_xticklabels(df_ratio["Tên"], rotation=0, ha="center")
-        ax2.grid(True, axis="y")
-        st.pyplot(fig2)
+    #     ax2.set_ylabel("Tỉ lệ thua (%)")
+    #     ax2.set_title("Tỉ lệ thua")
+    #     ax2.set_xticks(range(len(df_ratio["Tên"])))
+    #     ax2.set_xticklabels(df_ratio["Tên"], rotation=0, ha="center")
+    #     ax2.grid(True, axis="y")
+    #     st.pyplot(fig2)
