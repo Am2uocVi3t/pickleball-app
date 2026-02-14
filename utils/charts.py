@@ -24,32 +24,49 @@ def show_charts_page():
     df_matches["Ngày"] = df_matches["Ngày"].astype(str)
     df_matches["Ngày_dt"] = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce")
 
-    # --- Bộ lọc tháng ---
-    now = datetime.datetime.now()
-    months = list(range(1, 13))
+    # --- Bộ lọc ngày ---
+    today = datetime.datetime.today()
+    default_start = today.replace(day=1).strftime("%d/%m/%Y")  # Đầu tháng này
+    default_end = today.strftime("%d/%m/%Y")                   # Hôm nay
 
-    years = sorted(df_matches["Ngày_dt"].dropna().dt.year.unique())
-    if not years:
-        st.info("Chưa có dữ liệu năm để lọc biểu đồ.")
-        return
+    # Dùng session_state để lưu bộ lọc
+    if "chart_filter" not in st.session_state:
+        st.session_state.chart_filter = {
+            "start_str": default_start,
+            "end_str": default_end
+        }
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        month_start = st.selectbox("Từ tháng", months, index=now.month - 1)
-    with col2:
-        month_end = st.selectbox("Đến tháng", months, index=now.month - 1)
-    with col3:
-        year = st.selectbox("Chọn năm", years)
+    with st.form("chart_filter_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            start_str = st.text_input("Từ ngày", st.session_state.chart_filter["start_str"])
+        with col2:
+            end_str = st.text_input("Đến ngày", st.session_state.chart_filter["end_str"])
+        
+        filter_submit = st.form_submit_button("Lọc dữ liệu")
+        
+        if filter_submit:
+            st.session_state.chart_filter = {
+                "start_str": start_str,
+                "end_str": end_str
+            }
+    
+    # Lấy giá trị từ session_state
+    start_str = st.session_state.chart_filter["start_str"]
+    end_str = st.session_state.chart_filter["end_str"]
 
-    if month_start > month_end:
-        st.warning("Tháng bắt đầu phải nhỏ hơn hoặc bằng tháng kết thúc.")
+    # Kiểm tra và chuyển đổi
+    try:
+        start_date = pd.to_datetime(start_str, format="%d/%m/%Y")
+        end_date = pd.to_datetime(end_str, format="%d/%m/%Y")
+    except Exception:
+        st.error("Vui lòng nhập đúng định dạng dd/mm/yyyy.")
         return
 
     # Lọc dữ liệu
     df_filtered = df_matches[
-        (df_matches["Ngày_dt"].dt.year == year) &
-        (df_matches["Ngày_dt"].dt.month >= month_start) &
-        (df_matches["Ngày_dt"].dt.month <= month_end)
+        (df_matches["Ngày_dt"] >= start_date) &
+        (df_matches["Ngày_dt"] <= end_date)
     ]
 
     if df_filtered.empty:
@@ -83,7 +100,7 @@ def show_charts_page():
         )
 
     ax1.set_ylabel("Tổng tiền (VND)")
-    ax1.set_title(f"Biểu đồ từ tháng {month_start} đến tháng {month_end}")
+    # ax1.set_title(f"Biểu đồ từ {start_str} đến {end_str}")
     ax1.set_xticks(range(len(df_stats["Tên"])))
     ax1.set_xticklabels(df_stats["Tên"], rotation=0)
     ax1.grid(True, axis="y")
@@ -116,7 +133,7 @@ def show_charts_page():
         )
 
     ax2.set_ylabel("Tỉ lệ thua (%)")
-    ax2.set_title(f"Biểu đồ từ tháng {month_start} đến tháng {month_end}")
+    # ax2.set_title(f"Biểu đồ từ {start_str} đến {end_str}")
     ax2.set_xticks(range(len(df_ratio["Tên"])))
     ax2.set_xticklabels(df_ratio["Tên"], rotation=0)
     ax2.grid(True, axis="y")
@@ -221,6 +238,6 @@ def show_charts_page():
                 # path_effects.Normal()
                 # ])
 
-    ax.set_title(f"Biểu đồ từ tháng {month_start} đến tháng {month_end}", fontsize=20)
+    # ax.set_title(f"Biểu đồ từ {start_str} đến {end_str}", fontsize=20)
     fig.colorbar(im)
     st.pyplot(fig)

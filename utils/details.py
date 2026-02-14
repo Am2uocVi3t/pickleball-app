@@ -140,11 +140,31 @@ def show_detail_page():
     default_start = today.replace(day=1).strftime("%d/%m/%Y")  # Đầu tháng này
     default_end = today.strftime("%d/%m/%Y")                   # Hôm nay
 
-    col1, col2 = st.columns(2)
-    with col1:
-        start_str = st.text_input("Từ ngày", default_start)
-    with col2:
-        end_str = st.text_input("Đến ngày", default_end)
+    # Dùng session_state để lưu bộ lọc
+    if "detail_filter" not in st.session_state:
+        st.session_state.detail_filter = {
+            "start_str": default_start,
+            "end_str": default_end
+        }
+
+    with st.form("detail_filter_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            start_str = st.text_input("Từ ngày", st.session_state.detail_filter["start_str"])
+        with col2:
+            end_str = st.text_input("Đến ngày", st.session_state.detail_filter["end_str"])
+        
+        filter_submit = st.form_submit_button("Lọc dữ liệu")
+        
+        if filter_submit:
+            st.session_state.detail_filter = {
+                "start_str": start_str,
+                "end_str": end_str
+            }
+    
+    # Lấy giá trị từ session_state
+    start_str = st.session_state.detail_filter["start_str"]
+    end_str = st.session_state.detail_filter["end_str"]
 
     # Kiểm tra và chuyển đổi
     try:

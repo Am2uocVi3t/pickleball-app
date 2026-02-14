@@ -122,45 +122,59 @@ def show_stats_page():
     df_funds["Ngày"] = df_funds.get("Ngày", "").astype(str)
     df_funds["Ngày_dt"] = pd.to_datetime(df_funds["Ngày"], format="%d/%m/%Y", errors="coerce")
 
-    # Chọn tháng/năm
-    now = datetime.datetime.now()
-    months = list(range(1,13))
-    # Chọn tháng/năm dựa trên dữ liệu có sẵn ở matches hoặc funds
-    years_matches = df_matches["Ngày_dt"].dropna().dt.year.unique().tolist() if not df_matches.empty else []
-    years_funds = df_funds["Ngày_dt"].dropna().dt.year.unique().tolist() if not df_funds.empty else []
-    years = sorted(set(years_matches) | set(years_funds))
-    if not years:
-        st.info("Chưa có dữ liệu năm nào để chọn.")
-        return
-    
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        month_start = st.selectbox("Từ tháng", months, index=now.month-1)
-    with col2:
-        month_end = st.selectbox("Đến tháng", months, index=now.month-1)
-    with col3:
-        year = st.selectbox("Chọn năm", years, years.index(now.year) if now.year in years else len(years)-1)
+    # Chọn khoảng ngày
+    today = datetime.datetime.today()
+    default_start = today.replace(day=1).strftime("%d/%m/%Y")  # Đầu tháng này
+    default_end = today.strftime("%d/%m/%Y")                   # Hôm nay
 
-    if month_start > month_end:
-        st.warning("Tháng bắt đầu phải nhỏ hơn hoặc bằng tháng kết thúc.")
+    # Dùng session_state để lưu bộ lọc
+    if "stats_filter" not in st.session_state:
+        st.session_state.stats_filter = {
+            "start_str": default_start,
+            "end_str": default_end
+        }
+
+    with st.form("stats_filter_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            start_str = st.text_input("Từ ngày", st.session_state.stats_filter["start_str"])
+        with col2:
+            end_str = st.text_input("Đến ngày", st.session_state.stats_filter["end_str"])
+        
+        filter_submit = st.form_submit_button("Lọc dữ liệu")
+        
+        if filter_submit:
+            st.session_state.stats_filter = {
+                "start_str": start_str,
+                "end_str": end_str
+            }
+    
+    # Lấy giá trị từ session_state
+    start_str = st.session_state.stats_filter["start_str"]
+    end_str = st.session_state.stats_filter["end_str"]
+
+    # Kiểm tra và chuyển đổi
+    try:
+        start_date = pd.to_datetime(start_str, format="%d/%m/%Y")
+        end_date = pd.to_datetime(end_str, format="%d/%m/%Y")
+    except Exception:
+        st.error("Vui lòng nhập đúng định dạng dd/mm/yyyy.")
         return
     
-    # Lọc matches theo tháng/năm
+    # Lọc matches theo khoảng ngày
     if not df_matches.empty:
         df_filtered = df_matches[
-            (df_matches["Ngày_dt"].dt.year == year) &
-            (df_matches["Ngày_dt"].dt.month >= month_start) &
-            (df_matches["Ngày_dt"].dt.month <= month_end)
+            (df_matches["Ngày_dt"] >= start_date) &
+            (df_matches["Ngày_dt"] <= end_date)
         ].copy()
     else:
         df_filtered = pd.DataFrame(columns=df_matches.columns)
 
-    # Lọc funds theo khoảng tháng/năm
+    # Lọc funds theo khoảng ngày
     if not df_funds.empty:
         df_f_month = df_funds[
-            (df_funds["Ngày_dt"].dt.year == year) &
-            (df_funds["Ngày_dt"].dt.month >= month_start) &
-            (df_funds["Ngày_dt"].dt.month <= month_end)
+            (df_funds["Ngày_dt"] >= start_date) &
+            (df_funds["Ngày_dt"] <= end_date)
         ]
     else:
         df_f_month = pd.DataFrame(columns=df_funds.columns)
@@ -194,7 +208,7 @@ def show_stats_page():
         # st.dataframe(df_stats.reset_index(drop=True), use_container_width=True, hide_index=True)
         # st.markdown(f"###  Tổng tiền trận thua: **{total:,}**")
     else:
-        st.info(f"Không có dữ liệu trận thua cho khoảng tháng {month_start}-{month_end}/{year}.")
+        st.info(f"Không có dữ liệu trận thua cho khoảng {start_str} - {end_str}.")
         total = 0
 
     # --- Funds ---

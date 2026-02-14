@@ -43,28 +43,34 @@ def update_fund():
 
         # format ngày cuối tháng
         ngay_cuoi_thang = pd.Timestamp(year=y, month=m, day=1) + pd.offsets.MonthEnd(0)
-        ngay_str = ngay_cuoi_thang.strftime("%d/%m/%Y")
+        ngay_cuoi_str = ngay_cuoi_thang.strftime("%d/%m/%Y")
+        
+        # Ghi chú có cả tháng và năm để phân biệt
+        ghi_chu = f"Tổng thu quỹ tháng {m}/{y}"
 
-        # Ko update tháng cũ
+        # Kiểm tra xem tháng đã qua chưa
         if today > ngay_cuoi_thang:
-        # đã chốt sổ, chỉ thêm nếu chưa có (để lưu lần đầu)
-            if not ((df_funds["Ghi chú"] == f"Tổng thu quỹ tháng {m}") & 
-                    (df_funds["Ngày"] == ngay_str)).any():
+            # Tháng đã qua - chốt sổ, chỉ thêm nếu chưa có
+            if not ((df_funds["Ghi chú"] == ghi_chu) & 
+                    (df_funds["Ngày"] == ngay_cuoi_str)).any():
                 new_row = pd.DataFrame([{
-                    "Ngày": ngay_str,
-                    "Ghi chú": f"Tổng thu quỹ tháng {m}",
+                    "Ngày": ngay_cuoi_str,
+                    "Ghi chú": ghi_chu,
                     "Giá": total
                 }])
                 df_funds = pd.concat([df_funds, new_row], ignore_index=True)
-            continue  # bỏ qua update
-
-        # xoá nếu đã có để tránh trùng
-        mask = (df_funds["Ghi chú"] == f"Tổng thu quỹ tháng {m}") & (df_funds["Ngày"] == ngay_str)
+            continue  # bỏ qua update tháng cũ
+        
+        # Tháng hiện tại - cập nhật mỗi lần
+        # Xoá dòng cũ nếu có (tìm theo ghi chú vì ngày có thể thay đổi)
+        mask = df_funds["Ghi chú"] == ghi_chu
         df_funds = df_funds[~mask]
-        # thêm dòng mới
+        
+        # Thêm dòng mới với ngày hôm nay (để hiển thị khi lọc)
+        ngay_hom_nay_str = today.strftime("%d/%m/%Y")
         new_row = pd.DataFrame([{
-            "Ngày": ngay_str,
-            "Ghi chú": f"Tổng thu quỹ tháng {m}",
+            "Ngày": ngay_hom_nay_str,
+            "Ghi chú": ghi_chu,
             "Giá": total
         }])
         df_funds = pd.concat([df_funds, new_row], ignore_index=True)
@@ -123,7 +129,7 @@ def show_fund_page():
             save_funds(df_funds)
             st.success(f"Đã lưu vào quỹ {'thu' if fund_value>0 else 'chi'} {abs(fund_value):,}")
 
-    # --- Lọc theo tháng/năm ---
+    # --- Lọc theo khoảng ngày ---
     df = load_funds()
     if df.empty:
         st.info("Chưa có dữ liệu thu/chi quỹ.")
@@ -131,35 +137,53 @@ def show_fund_page():
 
     st.subheader("Danh sách thu chi quỹ")
 
-    # Tách cột tháng/năm từ "Ngày"
+    # Tách cột ngày
     df["Ngày_dt"] = pd.to_datetime(df["Ngày"], format="%d/%m/%Y", errors="coerce")
-    df["Tháng"] = df["Ngày_dt"].dt.month
-    df["Năm"] = df["Ngày_dt"].dt.year
 
-    months = list(range(1, 13))
-    years = sorted(df["Năm"].dropna().unique())
-    now = datetime.datetime.now()
+    today = datetime.datetime.today()
+    default_start = today.replace(day=1).strftime("%d/%m/%Y")  # Đầu tháng này
+    default_end = today.strftime("%d/%m/%Y")                   # Hôm nay
 
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        month_start = st.selectbox("Từ tháng", months, index=now.month-1)
-    with col2:
-        month_end = st.selectbox("Đến tháng", months, index=now.month-1)
-    with col3:
-        default_year_index = years.index(now.year) if now.year in years else len(years)-1
-        year = st.selectbox("Chọn năm", years, index=default_year_index)
+    # Dùng session_state để lưu bộ lọc
+    if "fund_filter" not in st.session_state:
+        st.session_state.fund_filter = {
+            "start_str": default_start,
+            "end_str": default_end
+        }
 
-    if month_start > month_end:
-        st.warning("Tháng bắt đầu phải nhỏ hơn hoặc bằng tháng kết thúc.")
+    with st.form("fund_filter_form"):
+        col1, col2 = st.columns(2)
+        with col1:
+            start_str = st.text_input("Từ ngày", st.session_state.fund_filter["start_str"])
+        with col2:
+            end_str = st.text_input("Đến ngày", st.session_state.fund_filter["end_str"])
+        
+        filter_submit = st.form_submit_button("Lọc dữ liệu")
+        
+        if filter_submit:
+            st.session_state.fund_filter = {
+                "start_str": start_str,
+                "end_str": end_str
+            }
+    
+    # Lấy giá trị từ session_state
+    start_str = st.session_state.fund_filter["start_str"]
+    end_str = st.session_state.fund_filter["end_str"]
+
+    # Kiểm tra và chuyển đổi
+    try:
+        start_date = pd.to_datetime(start_str, format="%d/%m/%Y")
+        end_date = pd.to_datetime(end_str, format="%d/%m/%Y")
+    except Exception:
+        st.error("Vui lòng nhập đúng định dạng dd/mm/yyyy.")
         return
 
     df_month = df[
-        (df["Năm"] == year) &
-        (df["Tháng"] >= month_start) &
-        (df["Tháng"] <= month_end)
+        (df["Ngày_dt"] >= start_date) &
+        (df["Ngày_dt"] <= end_date)
     ]
     if df_month.empty:
-        st.info("Không có thu chi trong tháng này.")
+        st.info(f"Không có thu chi trong khoảng {start_str} - {end_str}.")
     else:
         df_month_show = df_month.copy()
         df_month_show["Giá"] = df_month_show["Giá"].apply(lambda x: f"{x:+,}")
