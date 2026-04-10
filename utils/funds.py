@@ -35,7 +35,7 @@ def update_fund():
     month_years = df_matches.dropna(subset=["Ngày_dt"]).groupby([df_matches["Ngày_dt"].dt.year,
                                                                 df_matches["Ngày_dt"].dt.month])
     
-    today = pd.Timestamp.now()
+    today = pd.Timestamp.now().normalize()
     for (y, m), group in month_years:
         df_stats, total = get_stats(group, members_df)
         if total == 0:  
@@ -50,15 +50,17 @@ def update_fund():
 
         # Kiểm tra xem tháng đã qua chưa
         if today > ngay_cuoi_thang:
-            # Tháng đã qua - chốt sổ, chỉ thêm nếu chưa có
-            if not ((df_funds["Ghi chú"] == ghi_chu) & 
-                    (df_funds["Ngày"] == ngay_cuoi_str)).any():
-                new_row = pd.DataFrame([{
-                    "Ngày": ngay_cuoi_str,
-                    "Ghi chú": ghi_chu,
-                    "Giá": total
-                }])
-                df_funds = pd.concat([df_funds, new_row], ignore_index=True)
+            # Tháng đã qua - chuẩn hóa chỉ còn 1 dòng/tháng với ngày cuối tháng.
+            # Tránh trường hợp trước đó có cùng "Ghi chú" nhưng ngày khác (vd: 28/03),
+            # khi sang tháng mới bị thêm tiếp 31/03 thành 2 dòng.
+            mask = df_funds["Ghi chú"] == ghi_chu
+            df_funds = df_funds[~mask]
+            new_row = pd.DataFrame([{
+                "Ngày": ngay_cuoi_str,
+                "Ghi chú": ghi_chu,
+                "Giá": total
+            }])
+            df_funds = pd.concat([df_funds, new_row], ignore_index=True)
             continue  # bỏ qua update tháng cũ
         
         # Tháng hiện tại - cập nhật mỗi lần
