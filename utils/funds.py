@@ -28,18 +28,26 @@ def update_fund():
     df_matches = load_matches()
     members_df = load_sheet("members")
 
-    # Chuyển đổi cột Ngày
+    # Chuyển đổi cột Ngày và chỉ giữ các dòng ngày hợp lệ để group
     df_matches["Ngày_dt"] = pd.to_datetime(df_matches["Ngày"], format="%d/%m/%Y", errors="coerce")
+    df_matches_valid = df_matches.dropna(subset=["Ngày_dt"]).copy()
+    if df_matches_valid.empty:
+        return
 
     # Lấy tất cả (năm, tháng) có trận
-    month_years = df_matches.dropna(subset=["Ngày_dt"]).groupby([df_matches["Ngày_dt"].dt.year,
-                                                                df_matches["Ngày_dt"].dt.month])
+    month_years = df_matches_valid.groupby(
+        [df_matches_valid["Ngày_dt"].dt.year, df_matches_valid["Ngày_dt"].dt.month]
+    )
     
     today = pd.Timestamp.now().normalize()
     for (y, m), group in month_years:
         df_stats, total = get_stats(group, members_df)
         if total == 0:  
             continue  # không có gì thì bỏ qua
+
+        # Ép kiểu để tránh lỗi Timestamp khi y/m là kiểu không mong muốn
+        y = int(y)
+        m = int(m)
 
         # format ngày cuối tháng
         ngay_cuoi_thang = pd.Timestamp(year=y, month=m, day=1) + pd.offsets.MonthEnd(0)
