@@ -40,7 +40,7 @@ def get_stats(df_matches, members_df):
                 fee = int(gia)
             else:
                 fee = int(gia_map.get(name, 5000))
-            if doi_an_trang:
+            if name in doi_an_trang:
                 total_fee = fee * 2
             else:
                 total_fee = fee
